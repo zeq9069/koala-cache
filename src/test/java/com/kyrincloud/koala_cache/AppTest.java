@@ -16,6 +16,7 @@ public class AppTest{
 		Element element = new Element("name", "kyrin");
 		c.put(element);
 		c.flush();
+
 	}
 	
 }
