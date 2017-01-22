@@ -8,9 +8,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class LruCache implements Store{
+public class LruMemeryStore implements Store{
 	
-	private static final Logger log = Logger.getLogger(LruCache.class.getName());
+	private static final Logger log = Logger.getLogger(LruMemeryStore.class.getName());
 	
 	private final static int DEFAULT_CAP = 1024;
 	
@@ -30,11 +30,11 @@ public class LruCache implements Store{
 	
 	private long interval = 1000;
 	
-	public LruCache() {
+	public LruMemeryStore() {
 		this(DEFAULT_CAP , DEFAULT_LOAD_FACTOR , DEFAULT_EXPIRE_TIME);
 	}
 	
-	public LruCache(final int cap , float loadFactor , long timeToLive) {
+	public LruMemeryStore(final int cap , float loadFactor , long timeToLive) {
 		this.cap = cap;
 		this.loadFactor = loadFactor;
 		this.timeToLive = timeToLive;
