@@ -5,7 +5,7 @@ public interface Store {
 	
 	public void put(Element element);
 	
-	public Element get(Object key);
+	public Element getByKey(Object key);
 	
 	public int getSzie();
 	
