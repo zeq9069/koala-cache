@@ -5,24 +5,35 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class IndexCache {
 	
-	private Map<String,Long> index = new HashMap<String, Long>();
+	private Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
+
+		public int compare(String o1, String o2) {
+			return o1.compareTo(o2);
+		}
+	});
+	
+	FileInputStream indexChannel;
+	
+	FileInputStream dataChannel;
 	
 	public String path;
 	
 	public String dataPath;
 	
-	
-	
 	public IndexCache(String indexPath , String dataPath){
 		this.path = indexPath;
 		this.dataPath = dataPath;
 		try {
+			indexChannel = new FileInputStream(new File(indexPath));
+			dataChannel = new FileInputStream(new File(dataPath));
+			
 			load();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -30,24 +41,28 @@ public class IndexCache {
 	}
 	
 	private void load() throws IOException{
-		FileInputStream fis = new FileInputStream(new File(path));
+		FileInputStream fis = indexChannel;
 		
-		while(fis.available()>0){
+		while(indexChannel.available()>0){
 			ByteBuffer k = ByteBuffer.allocate(4);
 			fis.read(k.array());
 			byte[] kk = new byte[k.getInt()];
 			fis.read(kk);
 			String key = new String(kk);
 			
-			ByteBuffer v = ByteBuffer.allocate(8);
-			fis.read(v.array());
+			ByteBuffer start = ByteBuffer.allocate(8);
+			fis.read(start.array());
+			start.position(0);
 			
-			index.put(key, v.getLong());
+			ByteBuffer end = ByteBuffer.allocate(8);
+			fis.read(end.array());
+			end.position(0);
+			
+			index.put(key,Position.build(start.getLong(), end.getLong(), key));
 		}
-		fis.close();
 	}
 	
-	private Long get(String key){
+	public Position get(String key){
 		Iterator<String> keys = index.keySet().iterator();
 		while(keys.hasNext()){
 			String k = keys.next();
@@ -59,25 +74,40 @@ public class IndexCache {
 		return null;
 	}
 	
-	public String search(String key) throws Exception{
-		Long offset = get(key);
-		if(offset == null){
-			throw new Exception("offset is null");
-		}
-		FileInputStream fis = new FileInputStream(new File(dataPath));
+	public String search(String key , long offset , long allSize) throws Exception{
 		
-		FileChannel channel = fis.getChannel();
+		FileChannel channel = dataChannel.getChannel();
 		channel.position(offset);
 		ByteBuffer size = ByteBuffer.allocate(4);
 		channel.read(size);
 		size.position(0);
 		ByteBuffer value = ByteBuffer.allocate(size.getInt());
 		channel.read(value);
-		channel.close();
-		return new String(value.array());
+		
+		String res = new String(value.array());
+		
+		if(res.equals(key)){
+			return res;
+		}
+		long p = channel.position();
+		if(p+(key.length()+4) <= allSize+1){
+			return search(key, p, allSize);
+		}
+		return null;
 	}
 	
-	
-	
-
+public String searchCache(String key , long offset , long allSize) throws Exception{
+		
+		FileInputStream fis = dataChannel;
+		FileChannel channel = fis.getChannel();
+		channel.position(offset);
+		ByteBuffer block = ByteBuffer.allocate((int)(allSize-offset+1));
+		channel.read(block);
+		block.position(0);
+		
+		Block b = new Block(block);
+		String result = b.get(key);
+		System.out.println("查找次数："+b.count);
+		return result;
+	}
 }
