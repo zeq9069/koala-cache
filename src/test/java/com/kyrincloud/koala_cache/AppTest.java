@@ -16,7 +16,7 @@ public class AppTest{
 		manager.addCache(cache);
 		Cache c = manager.getCache("cache-1");
 		System.out.println(System.currentTimeMillis());
-		for(int i = 0 ; i < 2000000 ; i++){
+		for(int i = 0 ; i < 20000000 ; i++){
 			Element element = new Element("name"+i, "kyrin");
 			c.put(element);
 		}
@@ -26,7 +26,8 @@ public class AppTest{
 //		}
 		c.flush();
 		System.out.println(System.currentTimeMillis());
-
+		System.out.println(c.get("name19999"));
+		System.out.println(System.currentTimeMillis());
 
 
 	}

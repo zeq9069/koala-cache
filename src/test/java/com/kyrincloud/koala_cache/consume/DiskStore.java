@@ -39,6 +39,8 @@ public class DiskStore implements Store{
 	
 	private long threadInterval = 1000l;
 	
+	private long totalSize;//磁盘存储容量
+	
 	public DiskStore(String cacheName,String indexPathDir) throws Exception {
 		this.cacheName = cacheName;
 		this.indexPathDir = indexPathDir;
@@ -178,8 +180,7 @@ public class DiskStore implements Store{
 		return cacheName+".data";
 	}
 	
-	private void flushAddElements(){
-		
+	public void flushAddElements(){
 	}
 
 }
