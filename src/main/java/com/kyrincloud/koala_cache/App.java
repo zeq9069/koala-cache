@@ -18,14 +18,18 @@ public class App
     	IndexCache index = new IndexCache("/tmp/index", "/tmp/data");
     	String key = "";
     	long time = 0;
-    	for(int i = 0 ; i < 100000 ;i++){
-	    	Stopwatch stop = Stopwatch.createStarted();
-	    	Position pos = index.get("00000000000000000000000000008888");
+    	for(int i = 0 ; i < 10000 ;i++){
+	    	Position pos = index.get("0000888888");
+	    	
 			if(pos == null){
 				throw new Exception("pos is null");
 			}
-	    	key =  index.searchCache("00000000000000000000000000008888",pos.getStart(),pos.getEnd());
-	    	//System.out.println(stop.elapsed(TimeUnit.MILLISECONDS));
+	    	Stopwatch stop = Stopwatch.createStarted();
+	    	key =  index.searchCache("0000888888",pos.getStart(),pos.getEnd());
+	    	long timeout = stop.elapsed(TimeUnit.MILLISECONDS);
+			if(timeout > 0)
+		    	System.out.println("数据读总耗时："+timeout);
+	    	//time+=timeout;
     	}
     	System.out.println(key+" 总耗时："+time);
     }
@@ -34,7 +38,7 @@ public class App
     	Cache cache = new Cache("/tmp/index", "/tmp/data");
     	for(int i = 0 ; i< 10000000;i++){
     		String key = i+"";
-    		for(int j = key.length();j<32;j++){
+    		for(int j = key.length();j<10;j++){
     			key="0"+key;
     		}
     		cache.put(key);

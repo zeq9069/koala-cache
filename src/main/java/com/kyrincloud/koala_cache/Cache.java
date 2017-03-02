@@ -1,16 +1,10 @@
 package com.kyrincloud.koala_cache;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,17 +12,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.base.Optional;
-
 public class Cache {
 	
 	private List<String> cache = new ArrayList<String>();
 	
 	AtomicInteger counter = new AtomicInteger(0);
 	
-	FileOutputStream indexChannel;
+	RandomAccessFile indexChannel;
 	
-	FileOutputStream dataChannel;
+	RandomAccessFile dataChannel;
 	
 	String indexPath ;
 	
@@ -39,8 +31,8 @@ public class Cache {
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 			
-			indexChannel = new FileOutputStream(new File(indexPath));
-			dataChannel = new FileOutputStream(new File(dataPath));
+			indexChannel = new RandomAccessFile(new File(indexPath),"rw");
+			dataChannel = new RandomAccessFile(new File(dataPath),"rw");
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -54,6 +46,8 @@ public class Cache {
 	}
 	
 	public void flush() throws Exception{
+		
+		FileChannel channel = dataChannel.getChannel();
 		
 		Map<String,Position> index = new HashMap<String, Position>();
 		
@@ -72,7 +66,7 @@ public class Cache {
 			ByteBuffer values = ByteBuffer.allocate(4+len);
 			values.putInt(len);
 			values.put(key.getBytes());
-			dataChannel.write(values.array());
+			channel.write(values);
 			if(blockSize>=32768){
 				Position pos = Position.build(start, count, key);
 				index.put(key, pos);
@@ -85,13 +79,13 @@ public class Cache {
 				start = -1;
 			}
 		}
-		dataChannel.flush();
+		channel.force(true);
 		writeIndex(index);
 
 	} 
 	
 	public void writeIndex(Map<String,Position> index) throws Exception{
-		
+		FileChannel channel = indexChannel.getChannel();
 		Iterator<String> keys = index.keySet().iterator();
 		while(keys.hasNext()){
 			String key = keys.next();
@@ -100,9 +94,8 @@ public class Cache {
 			values.put(key.getBytes());
 			values.putLong(index.get(key).getStart());
 			values.putLong(index.get(key).getEnd());
-			indexChannel.write(values.array());
+			channel.write(values);
 		}
-		indexChannel.flush();
 	}
 	
 }
