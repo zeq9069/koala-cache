@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,8 +46,6 @@ public class Cache {
 	
 	public void flush() throws Exception{
 		
-		FileChannel channel = dataChannel.getChannel();
-		
 		Map<String,Position> index = new HashMap<String, Position>();
 		
 		Iterator<String> keys = cache.iterator();
@@ -66,7 +63,7 @@ public class Cache {
 			ByteBuffer values = ByteBuffer.allocate(4+len);
 			values.putInt(len);
 			values.put(key.getBytes());
-			channel.write(values);
+			dataChannel.write(values.array());
 			if(blockSize>=32768){
 				Position pos = Position.build(start, count, key);
 				index.put(key, pos);
@@ -79,13 +76,10 @@ public class Cache {
 				start = -1;
 			}
 		}
-		channel.force(true);
 		writeIndex(index);
-
 	} 
 	
 	public void writeIndex(Map<String,Position> index) throws Exception{
-		FileChannel channel = indexChannel.getChannel();
 		Iterator<String> keys = index.keySet().iterator();
 		while(keys.hasNext()){
 			String key = keys.next();
@@ -94,7 +88,7 @@ public class Cache {
 			values.put(key.getBytes());
 			values.putLong(index.get(key).getStart());
 			values.putLong(index.get(key).getEnd());
-			channel.write(values);
+			indexChannel.write(values.array());
 		}
 	}
 	

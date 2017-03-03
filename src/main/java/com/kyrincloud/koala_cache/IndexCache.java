@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.google.common.base.Stopwatch;
 
 /**
@@ -20,6 +23,8 @@ import com.google.common.base.Stopwatch;
  */
 public class IndexCache {
 	
+	private static final Log LOG = LogFactory.getLog("");
+
 	private Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
 		public int compare(String o1, String o2) {
 			return o1.compareTo(o2);
@@ -31,7 +36,7 @@ public class IndexCache {
 	
 	FileInputStream indexChannel;
 	
-	RandomAccessFile dataChannel;
+	FileChannel dataChannel;
 	
 	public String indexPath;
 	
@@ -42,7 +47,7 @@ public class IndexCache {
 		this.dataPath = dataPath;
 		try {
 			indexChannel = new FileInputStream(new File(indexPath));
-			dataChannel = new RandomAccessFile(new File(dataPath),"rw");
+			dataChannel = new RandomAccessFile(new File(dataPath),"rw").getChannel();
 			
 			load();
 		} catch (IOException e) {
@@ -93,40 +98,30 @@ public class IndexCache {
         return this.index.get(tmpKey);
 	}
 	
-//	public String search(String key , long offset , long allSize) throws Exception{
-//		
-//		FileChannel channel = dataChannel.getChannel();
-//		channel.position(offset);
-//		ByteBuffer size = ByteBuffer.allocate(4);
-//		channel.read(size);
-//		size.position(0);
-//		ByteBuffer value = ByteBuffer.allocate(size.getInt());
-//		channel.read(value);
-//		
-//		String res = new String(value.array());
-//		
-//		if(res.equals(key)){
-//			return res;
-//		}
-//		long p = channel.position();
-//		if(p+(key.length()+4) <= allSize+1){
-//			return search(key, p, allSize);
-//		}
-//		return null;
-//	}
-//	
-public String searchCache(String key , long offset , long allSize) throws Exception{
+
+	public String searchCache(String key , long offset , long allSize) throws Exception{
+		long time = 0;
+
+		dataChannel.position(offset);
 		
-		FileChannel channel = dataChannel.getChannel();
-		channel.position(offset);
+		Stopwatch stop = Stopwatch.createStarted();
+		//待优化
 		ByteBuffer block = ByteBuffer.allocate((int)(allSize-offset+1));
-		channel.read(block);
+		time = stop.elapsed(TimeUnit.MILLISECONDS);
+		if(time>0)
+		LOG.info("block加载耗时："+time);
+		
+		////待优化
+		dataChannel.read(block);
+		
 		block.position(0);
 		
+		
 		Block b = new Block(block);
-		Stopwatch stop = Stopwatch.createStarted();
+
 		String result = b.get(key);
-		System.out.println("block查找耗时："+stop.elapsed(TimeUnit.MICROSECONDS));
+		
+		
 		return result;
 	}
 }
