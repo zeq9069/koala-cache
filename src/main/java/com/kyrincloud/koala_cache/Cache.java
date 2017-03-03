@@ -3,17 +3,25 @@ package com.kyrincloud.koala_cache;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Cache {
 	
 	private List<String> cache = new ArrayList<String>();
+	
+	Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
+
+		public int compare(String o1, String o2) {
+			return o1.compareTo(o2);
+		}
+	});
+
 	
 	AtomicInteger counter = new AtomicInteger(0);
 	
@@ -46,8 +54,6 @@ public class Cache {
 	
 	public void flush() throws Exception{
 		
-		Map<String,Position> index = new HashMap<String, Position>();
-		
 		Iterator<String> keys = cache.iterator();
 		long count = 0;
 		int blockSize = 0;
@@ -60,7 +66,7 @@ public class Cache {
 			}
 			count+=len+4;
 			blockSize+=len+4;
-			ByteBuffer values = ByteBuffer.allocate(4+len);
+			Slice values = new Slice(4+len);
 			values.putInt(len);
 			values.put(key.getBytes());
 			dataChannel.write(values.array());
@@ -83,7 +89,7 @@ public class Cache {
 		Iterator<String> keys = index.keySet().iterator();
 		while(keys.hasNext()){
 			String key = keys.next();
-			ByteBuffer values = ByteBuffer.allocate(4+8+8+key.length());
+			Slice values = new Slice(4+8+8+key.length());
 			values.putInt(key.length());
 			values.put(key.getBytes());
 			values.putLong(index.get(key).getStart());

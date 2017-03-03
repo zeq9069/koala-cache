@@ -11,11 +11,11 @@ import java.util.List;
  */
 public class Block {
 	
-	private ByteBuffer block;
+	private Slice block;
 	
 	public int count = 0;
 	
-	public Block(ByteBuffer block){
+	public Block(Slice block){
 		this.block = block;
 	}
 	

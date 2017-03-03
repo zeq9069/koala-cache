@@ -12,7 +12,11 @@ import com.google.common.base.Stopwatch;
 /**
  * 单机存储引擎验证
  * 
- * 优化完以后的效果，每100万次读写，耗时33秒，每次都是微妙级别
+ * 优化完以后的效果，每100万次读，耗时28秒左右(每次微秒级累积)，只有十几次超过1毫秒
+ * 
+ * ByteBuffer 分配太耗时，我们用自定义的Slice代替，这就是为什么好多框架都自定义Slice的原因
+ * 
+ * 前提条件：index，data都是顺序存储
  *
  */
 public class App  
@@ -23,13 +27,12 @@ public class App
 
     public static void main( String[] args ) throws Exception
     {
-    	//load();
     App app = new App();
+    //app.load();
+    //app.multiRead("0008888888");//多线程情况下性能下降太大，如何优化？
     
-    //app.multiRead();
+    app.singleRead("0008888888");
     
-    app.singleRead();
-    	
     	
     	
     }
@@ -47,7 +50,7 @@ public class App
     }
     
     
-    public void multiRead(){
+    public void multiRead(final String key){
 	final IndexCache index = new IndexCache("/tmp/index", "/tmp/data");
 	    	
 	    	for(int i = 0 ;i<8;i++){
@@ -55,9 +58,10 @@ public class App
 					
 					public void run() {
 						try {
+					    	String res = null;
+
 							long time = 0;
 	
-					    	String key = "0008888888";
 					    	for(int i = 0 ; i < 10000 ;i++){
 	
 					    		Stopwatch stop = Stopwatch.createStarted();
@@ -68,7 +72,7 @@ public class App
 									throw new Exception("pos is null");
 								}
 	
-						    	key =  index.searchCache(key,pos.getStart(),pos.getEnd());
+						    	res =  index.searchCache(key,pos.getStart(),pos.getEnd());
 						    	time+= stop.elapsed(TimeUnit.MILLISECONDS);
 					    	}
 					    	if(time>0)
@@ -80,14 +84,14 @@ public class App
 					}
 				});
 	    	}
+	    	exec.shutdown();
     }
     
-    public void singleRead() throws Exception{
+    public void singleRead(String key) throws Exception{
     	IndexCache index = new IndexCache("/tmp/index", "/tmp/data");
     	long time = 0;
     	
-    	String key = "0008888888";
-    	for(int i = 0 ; i < 10000 ;i++){
+    	for(int i = 0 ; i < 1000000 ;i++){
 
     		Stopwatch stop = Stopwatch.createStarted();
 
@@ -98,9 +102,9 @@ public class App
 			}
 
 	    	key =  index.searchCache(key,pos.getStart(),pos.getEnd());
-	    	time+= stop.elapsed(TimeUnit.MILLISECONDS);
+	    	time+= stop.elapsed(TimeUnit.MICROSECONDS);
     	}
-    	if(time>0)
+    	if(time>1000)
 			LOG.info("block加载耗时："+time);
     	System.out.println(key);
     }

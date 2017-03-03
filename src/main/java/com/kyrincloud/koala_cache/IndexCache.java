@@ -5,7 +5,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -41,6 +43,8 @@ public class IndexCache {
 	
 	ReentrantLock lock = new ReentrantLock();
 	
+	MappedByteBuffer map ;
+	
 //	//预分配一个block（32k）字节，稍大一些，因为我们不一定是严格意义上的32K
 //	//可以提高分配带来的时间消耗
 //	private ByteBuffer block = ByteBuffer.allocate(32*1024+4+1024);
@@ -56,7 +60,7 @@ public class IndexCache {
 		try {
 			indexChannel = new FileInputStream(new File(indexPath));
 			dataChannel = new RandomAccessFile(new File(dataPath),"rw").getChannel();
-			
+			map = dataChannel.map(MapMode.READ_ONLY, 0, dataChannel.size());
 			load();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -66,17 +70,19 @@ public class IndexCache {
 	private void load() throws IOException{
 		
 		while(indexChannel.available()>0){
-			ByteBuffer k = ByteBuffer.allocate(4);
-			indexChannel.read(k.array());
-			byte[] kk = new byte[k.getInt()];
+			Slice kSlice = new Slice(4);
+			indexChannel.read(kSlice.array());
+			byte[] kk = new byte[kSlice.getInt()];
 			indexChannel.read(kk);
 			String key = new String(kk);
 			
-			ByteBuffer start = ByteBuffer.allocate(8);
+			Slice start = new Slice(8);
+
 			indexChannel.read(start.array());
 			start.position(0);
 			
-			ByteBuffer end = ByteBuffer.allocate(8);
+			Slice end = new Slice(8);
+
 			indexChannel.read(end.array());
 			end.position(0);
 			
@@ -112,20 +118,13 @@ public class IndexCache {
 		
 		Stopwatch s = Stopwatch.createStarted();
 		
-		byte[] y = new byte[(int)(allSize-offset+1)];
-		ByteBuffer block1 = ByteBuffer.wrap(y);
+		Slice slice = new Slice((int)(allSize-offset+1));
 		
-		try{
-			lock.lock();
-			dataChannel.position(offset);
-			dataChannel.read(block1);
-		}finally{
-			lock.unlock();
-		}
+		ByteBuffer data = map.duplicate();
+		data.position((int)offset);
+		data.get(slice.array());
 		
-		
-		block1.position(0);
-		Block b = new Block(block1);
+		Block b = new Block(slice);
 		String result = b.get(key);
 		if(s.elapsed(TimeUnit.MILLISECONDS) > 0){
 			LOG.info(s.elapsed(TimeUnit.MILLISECONDS));
