@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -23,8 +24,8 @@ import com.google.common.base.Stopwatch;
  */
 public class IndexCache {
 	
-	private static final Log LOG = LogFactory.getLog("");
-
+	private static final Log LOG = LogFactory.getLog(IndexCache.class);
+	
 	private Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
 		public int compare(String o1, String o2) {
 			return o1.compareTo(o2);
@@ -38,10 +39,17 @@ public class IndexCache {
 	
 	FileChannel dataChannel;
 	
+	ReentrantLock lock = new ReentrantLock();
+	
+//	//预分配一个block（32k）字节，稍大一些，因为我们不一定是严格意义上的32K
+//	//可以提高分配带来的时间消耗
+//	private ByteBuffer block = ByteBuffer.allocate(32*1024+4+1024);
+	
 	public String indexPath;
 	
 	public String dataPath;
 	
+	@SuppressWarnings("resource")
 	public IndexCache(String indexPath , String dataPath){
 		this.indexPath = indexPath;
 		this.dataPath = dataPath;
@@ -100,28 +108,28 @@ public class IndexCache {
 	
 
 	public String searchCache(String key , long offset , long allSize) throws Exception{
-		long time = 0;
-
-		dataChannel.position(offset);
+		//这种分配貌似比直接bytebuffer.allact效率要高一些
 		
-		Stopwatch stop = Stopwatch.createStarted();
-		//待优化
-		ByteBuffer block = ByteBuffer.allocate((int)(allSize-offset+1));
-		time = stop.elapsed(TimeUnit.MILLISECONDS);
-		if(time>0)
-		LOG.info("block加载耗时："+time);
+		Stopwatch s = Stopwatch.createStarted();
 		
-		////待优化
-		dataChannel.read(block);
+		byte[] y = new byte[(int)(allSize-offset+1)];
+		ByteBuffer block1 = ByteBuffer.wrap(y);
 		
-		block.position(0);
+		try{
+			lock.lock();
+			dataChannel.position(offset);
+			dataChannel.read(block1);
+		}finally{
+			lock.unlock();
+		}
 		
 		
-		Block b = new Block(block);
-
+		block1.position(0);
+		Block b = new Block(block1);
 		String result = b.get(key);
-		
-		
+		if(s.elapsed(TimeUnit.MILLISECONDS) > 0){
+			LOG.info(s.elapsed(TimeUnit.MILLISECONDS));
+		}
 		return result;
 	}
 }

@@ -3,13 +3,6 @@ package com.kyrincloud.koala_cache;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.google.common.base.Stopwatch;
-
 /**
  * 遍历查询是做过优化之后的
  * 先统计数量，直接在byte[]中做二分查找
