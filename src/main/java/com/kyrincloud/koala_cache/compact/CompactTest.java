@@ -9,6 +9,7 @@ import java.nio.channels.FileChannel.MapMode;
 import com.google.common.collect.Lists;
 import com.kyrincloud.koala_cache.Slice;
 
+@SuppressWarnings("resource")
 public class CompactTest {
 	
 	public static void main(String[] args) throws Exception {
@@ -22,14 +23,17 @@ public class CompactTest {
 		FileChannel ch1 = new FileInputStream(new File("/tmp/data1")).getChannel();
 		FileChannel ch2 = new FileInputStream(new File("/tmp/data2")).getChannel();
 
-		FileIterator it1 = new FileIterator(ch1.map(MapMode.READ_ONLY, 0,ch1.size()).duplicate());
-		FileIterator it2 = new FileIterator(ch2.map(MapMode.READ_ONLY, 0,ch2.size()).duplicate());
+		FileIterator it1 = new FileIterator(ch1);
+		FileIterator it2 = new FileIterator(ch2);
 		
 		MergeIterator merge = new MergeIterator(Lists.newArrayList(it1,it2));
 		
 		while(merge.hasNext()){
 			System.out.println(">>>"+merge.getNextElement());
 		}
+		
+		ch1.close();
+		ch2.close();
 	}
 	
 	public void write() throws Exception{

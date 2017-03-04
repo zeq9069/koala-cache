@@ -1,15 +1,22 @@
 package com.kyrincloud.koala_cache.compact;
 
-import java.nio.ByteBuffer;
+import java.io.IOException;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 
 public class FileIterator implements Comparable<FileIterator>{
 	
-	private ByteBuffer map;
+	private MappedByteBuffer map;
 	
 	private String nextElement;
 	
-	public FileIterator(ByteBuffer map) {
-		this.map = map;
+	public FileIterator(FileChannel channel) {
+		try {
+			map = channel.map(MapMode.READ_ONLY, 0,channel.size());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public String getNextElement() {
