@@ -14,6 +14,7 @@ public class FileIterator implements Comparable<FileIterator>{
 	public FileIterator(FileChannel channel) {
 		try {
 			map = channel.map(MapMode.READ_ONLY, 0,channel.size());
+			hasNext();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -43,10 +44,10 @@ public class FileIterator implements Comparable<FileIterator>{
 	public int compareTo(FileIterator iterator) {
 		String nextKey = iterator.getNextElement();
 		if(nextKey == null && nextElement != null ){
-			return 1;
+			return -1;
 		}
 		if(nextElement == null && nextKey != null ){
-			return -1;
+			return 1;
 		}
 		if(nextKey == null && nextElement == null){
 			return 0;

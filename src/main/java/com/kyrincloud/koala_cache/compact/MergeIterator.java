@@ -15,14 +15,20 @@ public class MergeIterator {
 	
 	public boolean hasNext(){
 		FileIterator iterator = queue.poll();
-		boolean hasNext = iterator.hasNext();
 		nextElement = iterator.next();
+		boolean hasNext = false;
+		if(nextElement != null){
+			hasNext = true;
+			iterator.hasNext();
+		}
 		queue.add(iterator);
 		return hasNext;
 	}
 	
 	public String next(){
-		return nextElement;
+		String key =  nextElement;
+		nextElement = null;
+		return key;
 	}
 
 	public String getNextElement() {
