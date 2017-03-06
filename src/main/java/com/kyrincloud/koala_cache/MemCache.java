@@ -26,7 +26,8 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
 /**
  * 缓存实现，提供持久化机制，同时，内存达到一定的大小之后会被持久化到硬盘，然后生成的多个文件进行归并，最终生成一个有序的数据文件
  * @author zhangerqiang
- * bug : logNumber 存在并发问题
+ * 
+ * Bug : 当put的数据量太大的时候，会导致old spaces 被打满(后期或许会使用堆外内存)
  */
 public class MemCache {
 	
@@ -61,7 +62,7 @@ public class MemCache {
 	
 	public void put(String key){
 		table.put(key);
-		if(table.getSize() >= MAX_SIZE){
+		if(table.getSize() >= MAX_SIZE && !isSchedule){
 			exec.submit(new Runnable() {
 				public void run() {
 					mayScheduce();
@@ -94,15 +95,16 @@ public class MemCache {
 		if (isSchedule) {
 			return;
 		}
+		isSchedule = true;
 		FileOutputStream fos = null;
 		FileOutputStream indexFos = null;
 		try {
-			String dataPath = basePath + "/" + logNumber.incrementAndGet() + ".data";
-			String indexPath = basePath + "/" + logNumber + ".index";
+			int currentNum = logNumber.incrementAndGet();
+			String dataPath = basePath + "/" + currentNum + ".data";
+			String indexPath = basePath + "/" + currentNum + ".index";
 			
-			isSchedule = true;
 			// 持久化
-			Table immuMemcache = table.clone();
+			Table immuMemcache = table;
 			if (immuMemcache == null) {
 				return;
 			}
@@ -216,8 +218,9 @@ public class MemCache {
 			FileIterator it1 = new FileIterator(fis1.getChannel());
 			FileIterator it2 = new FileIterator(fis2.getChannel());
 
-			String dataPath = basePath + "/" + logNumber.incrementAndGet() + ".data";
-			String indexPath = basePath + "/" + logNumber + ".index";
+			int currentNum = logNumber.incrementAndGet();
+			String dataPath = basePath + "/" + currentNum + ".data";
+			String indexPath = basePath + "/" + currentNum + ".index";
 
 		    fos = new FileOutputStream(new File(dataPath));
 		    indexFos = new FileOutputStream(new File(indexPath));

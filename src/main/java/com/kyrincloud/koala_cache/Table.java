@@ -64,21 +64,4 @@ public class Table implements Cloneable{
 		return memcache.isEmpty();
 	}
 
-	@SuppressWarnings("unchecked")
-	@Override
-	protected Table clone() {
-		Table table = new Table();
-		try{
-			lock.lock();
-			table.setMemcache((TreeMap<String, Byte>) memcache.clone());
-			table.setSize(size);
-		return table;
-		}catch(Exception e){
-			e.printStackTrace();
-		}finally{
-			lock.unlock();
-		}
-		return null;
-	}
-
 }
