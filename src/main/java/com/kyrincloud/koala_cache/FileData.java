@@ -89,7 +89,7 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 		index.keySet().toArray(array);
 	}
 	
-	public Position get(String key){
+	private Position get(String key){
 		int lo=0;
         int hi=array.length-1;
         int mid;
@@ -120,13 +120,15 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 		return dataPath;
 	}
 
-	public String searchCache(String key , long offset , long allSize) throws Exception{
+	public String searchCache(String key) throws Exception{
 		//这种分配貌似比直接bytebuffer.allact效率要高一些
 		
-		Slice slice = new Slice((int)(allSize-offset+1));
+		Position pos = get(key);
+		
+		Slice slice = new Slice((int)(pos.getEnd()-pos.getStart()+1));
 		
 		ByteBuffer data = map.duplicate();
-		data.position((int)offset);
+		data.position((int)pos.getStart());
 		data.get(slice.array());
 		
 		Block b = new Block(slice);

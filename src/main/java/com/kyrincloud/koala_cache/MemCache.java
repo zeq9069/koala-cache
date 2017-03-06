@@ -28,6 +28,7 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
  * @author zhangerqiang
  * 
  * Bug : 当put的数据量太大的时候，会导致old spaces 被打满(后期或许会使用堆外内存)
+ * Bug : 读和文件合并存在冲突的问题
  */
 public class MemCache {
 	
@@ -69,6 +70,28 @@ public class MemCache {
 				}
 			});
 		}
+	}
+	
+	public String get(String key){
+		String value = table.get(key);
+		if(value != null){
+			return value;
+		}
+		Iterator<FileData> its = filenames.iterator();
+		while(its.hasNext()){
+			FileData data = its.next();
+			try {
+				value = data.searchCache(key);
+				if(value == null){
+					continue;
+				}else{
+					return value;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
 	}
 	
 	private void initSchedule(){
@@ -293,7 +316,7 @@ public class MemCache {
 		return false;
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		MemCache cache = new MemCache("/tmp");
 		Stopwatch s = Stopwatch.createStarted();
 		for(int i = 0 ; i< 10000000;i++){
@@ -304,6 +327,9 @@ public class MemCache {
     		cache.put(key);
     	}
 		System.out.println(s.elapsed(TimeUnit.MILLISECONDS));
+		
+		for(int i = 0 ; i < 10000000;i++)
+		System.out.println(cache.get("0008888888"));
 		
 	}
 	
