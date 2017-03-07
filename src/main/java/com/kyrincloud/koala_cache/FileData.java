@@ -132,6 +132,17 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 	public FileDataStatus getStatus(){
 		return this.status;
 	}
+	
+	public synchronized void clear(){
+		File index = new File(indexPath);
+		File data = new File(dataPath);
+		if(index.exists()){
+			index.delete();
+		}
+		if(data.exists()){
+			data.delete();
+		}
+	}
 
 	public synchronized String searchCache(String key) throws Exception{
 		//这种分配貌似比直接bytebuffer.allact效率要高一些

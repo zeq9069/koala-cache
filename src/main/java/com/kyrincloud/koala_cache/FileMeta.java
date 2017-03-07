@@ -44,6 +44,10 @@ public class FileMeta {
 			if(data.getStatus().code() == FileDataStatus.LIVING.code()){
 				living++;
 			}
+			if(data.getStatus().code() == FileDataStatus.DELETING.code()){
+				data.clear();
+				it.remove();
+			}
 		}
 		return living;
 	}
