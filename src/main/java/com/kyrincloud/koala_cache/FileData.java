@@ -47,6 +47,8 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 	
 	private String number;
 	
+	private FileDataStatus status = FileDataStatus.LIVING;
+	
 	@SuppressWarnings("resource")
 	public FileData(String indexPath , String dataPath){
 		this.indexPath = indexPath;
@@ -65,7 +67,7 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 	
 	private void load() throws IOException{
 		
-		while(indexChannel.available()>0){
+		while(indexChannel.available()>4){
 			Slice kSlice = new Slice(4);
 			indexChannel.read(kSlice.array());
 			byte[] kk = new byte[kSlice.getInt()];
@@ -105,6 +107,9 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
                 hi=mid-1;
             }
         }
+        if(tmpKey == null){
+        	return null;
+        }
         return this.index.get(tmpKey);
 	}
 	
@@ -119,11 +124,23 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 	public String getDataPath() {
 		return dataPath;
 	}
+	
+	public void setStatus(FileDataStatus status){
+		this.status = status;
+	}
+	
+	public FileDataStatus getStatus(){
+		return this.status;
+	}
 
-	public String searchCache(String key) throws Exception{
+	public synchronized String searchCache(String key) throws Exception{
 		//这种分配貌似比直接bytebuffer.allact效率要高一些
 		
 		Position pos = get(key);
+		
+		if(pos == null){
+			return null;
+		}
 		
 		Slice slice = new Slice((int)(pos.getEnd()-pos.getStart()+1));
 		

@@ -109,6 +109,9 @@ public class IndexCache {
                 hi=mid-1;
             }
         }
+        if(tmpKey == null){
+        	return null;
+        }
         return this.index.get(tmpKey);
 	}
 	

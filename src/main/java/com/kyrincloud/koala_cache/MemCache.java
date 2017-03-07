@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
@@ -28,11 +27,14 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
  * @author zhangerqiang
  * 
  * Bug : 当put的数据量太大的时候，会导致old spaces 被打满(后期或许会使用堆外内存)
- * Bug : 读和文件合并存在冲突的问题
+ * Bug : 读和文件合并存在冲突的问题(已解决)
+ * Bug : 读与文件合并的优化
  */
 public class MemCache {
 	
 	private Table table ;
+	
+	private Table immuMemTable = null;
 	
 	private long MAX_SIZE = 2<<21;
 	
@@ -46,12 +48,7 @@ public class MemCache {
 	
 	private volatile boolean isMerge = false;
 	
-	private PriorityQueue<FileData> filenames = new PriorityQueue<FileData>(new Comparator<FileData>() {
-
-		public int compare(FileData o1, FileData o2) {
-			return o1.getNumber().compareTo(o2.getNumber());
-		}
-	});
+	private FileMeta meta = new FileMeta();
 	
 	private String basePath;
 	
@@ -66,6 +63,7 @@ public class MemCache {
 		if(table.getSize() >= MAX_SIZE && !isSchedule){
 			exec.submit(new Runnable() {
 				public void run() {
+					System.out.println("开始合并...");
 					mayScheduce();
 				}
 			});
@@ -77,21 +75,13 @@ public class MemCache {
 		if(value != null){
 			return value;
 		}
-		Iterator<FileData> its = filenames.iterator();
-		while(its.hasNext()){
-			FileData data = its.next();
-			try {
-				value = data.searchCache(key);
-				if(value == null){
-					continue;
-				}else{
-					return value;
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		if(immuMemTable != null){
+			value = immuMemTable.get(key);
 		}
-		return null;
+		if(value != null){
+			return value;
+		}
+		return meta.search(key);
 	}
 	
 	private void initSchedule(){
@@ -105,7 +95,7 @@ public class MemCache {
 					mayScheduce();
 				}
 				
-				if(!isMerge && filenames.size() >= 2){
+				if(!isMerge && meta.live() >= 2){
 					System.out.println("开始合并...");
 					mergeFile();
 				}
@@ -127,8 +117,8 @@ public class MemCache {
 			String indexPath = basePath + "/" + currentNum + ".index";
 			
 			// 持久化
-			Table immuMemcache = table;
-			if (immuMemcache == null) {
+			immuMemTable = table;
+			if (immuMemTable == null) {
 				return;
 			}
 			table = new Table();
@@ -147,7 +137,7 @@ public class MemCache {
 			int blockSize = 0;
 			long start = -1;
 			int total = 0;
-			for (String key : immuMemcache.getKeySet()) {
+			for (String key : immuMemTable.getKeySet()) {
 				total++;
 				if(start == -1){
 					start=count;
@@ -167,7 +157,7 @@ public class MemCache {
 					index.put(key, pos);
 					blockSize=0;
 					start = -1;
-				}else if(total == immuMemcache.getTableSize()){
+				}else if(total == immuMemTable.getTableSize()){
 					Position pos = Position.build(start, count, key);
 					index.put(key, pos);
 					blockSize=0;
@@ -180,10 +170,10 @@ public class MemCache {
 			writeIndex(index,indexFos);
 			
 			logNumber.incrementAndGet();
-			filenames.add(new FileData(indexPath, dataPath));
+			meta.put(new FileData(indexPath, dataPath));
 
 			// 文件合并
-			if (filenames.size() >= 2) {
+			if (meta.live() >= 2) {
 				System.out.println("文件开始合并...");
 				mergeFile();
 			}
@@ -230,8 +220,8 @@ public class MemCache {
 		try {
 			isMerge = true;
 			mergeLock.lock();
-			FileData fileData1 = filenames.poll();
-			FileData fileData2 = filenames.poll();
+			FileData fileData1 = meta.toMerging();
+			FileData fileData2 = meta.toMerging();
 
 			File f1 = new File(fileData1.getDataPath());
 			File f2 = new File(fileData2.getDataPath());
@@ -297,11 +287,12 @@ public class MemCache {
 			f1.delete();
 			f2.delete();
 			
-			new File(fileData1.getIndexPath()).delete();
-			new File(fileData2.getIndexPath()).delete();
+			meta.put(new FileData(indexPath, dataPath));
+
+			fileData1.setStatus(FileDataStatus.DELETING);
+			fileData2.setStatus(FileDataStatus.DELETING);
 
 			logNumber.incrementAndGet();
-			filenames.add(new FileData(indexPath, dataPath));
 			return true;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
