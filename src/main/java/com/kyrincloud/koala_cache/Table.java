@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author kyrin
  *
  */
-public class Table implements Cloneable {
+public class Table {
 
 	private TreeMap<String, Byte> memcache;
 

@@ -9,8 +9,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
@@ -20,14 +19,11 @@ public class FileData {
 	
 private static final Log LOG = LogFactory.getLog(FileData.class);
 	
-	private Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
+	private ConcurrentSkipListMap<String, Position> index = new ConcurrentSkipListMap<String, Position>(new Comparator<String>() {
 		public int compare(String o1, String o2) {
 			return o1.compareTo(o2);
 		}
 	});
-	
-	private String [] array = null;
-
 	
 	FileInputStream indexChannel;
 	
@@ -80,33 +76,15 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 			indexChannel.read(end.array());
 			end.position(0);
 			
-			index.put(key,Position.build(start.getLong(), end.getLong(), key));
+			index.put(key,Position.build(start.getLong(), end.getLong()));
 		}
-		
-		array = new String[index.size()];
-		index.keySet().toArray(array);
 	}
 	
 	private Position get(String key){
-		int lo=0;
-        int hi=array.length-1;
-        int mid;
-        String tmpKey = null;
-        while(lo<=hi){
-            mid=(lo+hi)/2;
-            if(key.equals(array[mid])){
-            	return this.index.get(key);
-            }else if(key.compareTo(array[mid])>0){
-                lo=mid+1;
-            }else{
-            	tmpKey = array[mid];
-                hi=mid-1;
-            }
-        }
-        if(tmpKey == null){
-        	return null;
-        }
-        return this.index.get(tmpKey);
+		if(key == null){
+			return null;
+		}
+        return this.index.get(key);
 	}
 	
 	public String getNumber(){

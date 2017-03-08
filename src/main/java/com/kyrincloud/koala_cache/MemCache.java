@@ -157,12 +157,12 @@ public class MemCache {
 				values.put(key.getBytes());
 				fos.write(values.array());
 				if(blockSize>=32768){
-					Position pos = Position.build(start, count, key);
+					Position pos = Position.build(start, count);
 					index.put(key, pos);
 					blockSize=0;
 					start = -1;
 				}else if(total == immuMemTable.getTableSize()){
-					Position pos = Position.build(start, count, key);
+					Position pos = Position.build(start, count);
 					index.put(key, pos);
 					blockSize=0;
 					start = -1;
@@ -175,7 +175,6 @@ public class MemCache {
 			
 			logNumber.incrementAndGet();
 			meta.put(new FileData(indexPath, dataPath));
-
 			// 文件合并
 			if (meta.live() >= 2) {
 				System.out.println("文件开始合并...");
@@ -190,6 +189,7 @@ public class MemCache {
 			LOG.error("MemCache mayScheduce exception.",e);
 		} finally {
 			isSchedule = false;
+			immuMemTable = null;
 			try {
 				fos.close();
 			} catch (IOException e) {
@@ -271,7 +271,7 @@ public class MemCache {
 				values.put(key.getBytes());
 				fos.write(values.array());
 				if (blockSize >= 32768) {
-					Position pos = Position.build(start, count, key);
+					Position pos = Position.build(start, count);
 					index.put(key, pos);
 					blockSize = 0;
 					start = -1;
@@ -280,7 +280,7 @@ public class MemCache {
 
 			fos.flush();
 
-			Position pos = Position.build(start, count, key);
+			Position pos = Position.build(start, count);
 			index.put(key, pos);
 
 			writeIndex(index, indexFos);
