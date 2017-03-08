@@ -288,9 +288,6 @@ public class MemCache {
 			fis1.close();
 			fis2.close();
 
-			f1.delete();
-			f2.delete();
-
 			meta.put(new FileData(indexPath, dataPath));
 
 			fileData1.setStatus(FileDataStatus.DELETED);
