@@ -1,13 +1,19 @@
 package com.kyrincloud.koala_cache;
 
+/**
+ * key的位置信息
+ * 
+ * @author kyrin
+ *
+ */
 public class Position {
-	
+
 	private String key;
-	
+
 	private long start;
-	
+
 	private long end;
-	
+
 	public String getKey() {
 		return key;
 	}
@@ -31,8 +37,8 @@ public class Position {
 	public void setEnd(long end) {
 		this.end = end;
 	}
-	
-	public static Position build(long start , long end , String key){
+
+	public static Position build(long start, long end, String key) {
 		Position pos = new Position();
 		pos.setStart(start);
 		pos.setEnd(end);

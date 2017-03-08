@@ -1,5 +1,11 @@
 package com.kyrincloud.koala_cache;
 
+/**
+ * 分片
+ * 
+ * @author kyrin
+ *
+ */
 public class Slice {
 
 	byte[] block;

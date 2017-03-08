@@ -13,16 +13,18 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.base.Stopwatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Lists;
 import com.kyrincloud.koala_cache.compact.FileIterator;
 import com.kyrincloud.koala_cache.compact.MergeIterator;
 
 /**
+ * 核心操作类
  * 缓存实现，提供持久化机制，同时，内存达到一定的大小之后会被持久化到硬盘，然后生成的多个文件进行归并，最终生成一个有序的数据文件
  * @author zhangerqiang
  * 
@@ -31,6 +33,8 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
  * Bug : 读与文件合并的优化
  */
 public class MemCache {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(MemCache.class);
 	
 	private Table table ;
 	
@@ -42,7 +46,7 @@ public class MemCache {
 	
 	private AtomicInteger logNumber = new AtomicInteger(0);
 	
-	private ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+	private ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 	
 	private volatile boolean isSchedule = false;
 	
@@ -58,9 +62,9 @@ public class MemCache {
 		initSchedule();
 	}
 	
-	public void put(String key){
+	public void put(String key) {
 		table.put(key);
-		if(table.getSize() >= MAX_SIZE && !isSchedule){
+		if (table.getSize() >= MAX_SIZE && !isSchedule) {
 			exec.submit(new Runnable() {
 				public void run() {
 					System.out.println("开始合并...");
@@ -179,16 +183,17 @@ public class MemCache {
 			}
 
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			LOG.error("MemCache mayScheduce don't found file.",e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.error("MemCache mayScheduce I/O exception.",e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOG.error("MemCache mayScheduce exception.",e);
 		} finally {
 			isSchedule = false;
 			try {
 				fos.close();
 			} catch (IOException e) {
+				LOG.error("I/O close fail.",e);
 			}
 		}
 	}
@@ -210,7 +215,7 @@ public class MemCache {
 	
 	@SuppressWarnings("resource")
 	private boolean mergeFile() {
-		if(isMerge){
+		if (isMerge) {
 			return false;
 		}
 		FileOutputStream fos = null;
@@ -225,7 +230,7 @@ public class MemCache {
 
 			File f1 = new File(fileData1.getDataPath());
 			File f2 = new File(fileData2.getDataPath());
-			
+
 			fis1 = new FileInputStream(f1);
 			fis2 = new FileInputStream(f2);
 			FileIterator it1 = new FileIterator(fis1.getChannel());
@@ -235,93 +240,75 @@ public class MemCache {
 			String dataPath = basePath + "/" + currentNum + ".data";
 			String indexPath = basePath + "/" + currentNum + ".index";
 
-		    fos = new FileOutputStream(new File(dataPath));
-		    indexFos = new FileOutputStream(new File(indexPath));
-		    
+			fos = new FileOutputStream(new File(dataPath));
+			indexFos = new FileOutputStream(new File(indexPath));
+
 			MergeIterator merge = new MergeIterator(Lists.newArrayList(it1, it2));
 
-			Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
+			Map<String, Position> index = new TreeMap<String, Position>(new Comparator<String>() {
 				public int compare(String o1, String o2) {
 					return o1.compareTo(o2);
 				}
 			});
-			
-			
+
 			long count = 0;
 			int blockSize = 0;
 			long start = -1;
 			String key = null;
 			while (merge.hasNext()) {
 				key = merge.next();
-				if(start == -1){
-					start=count;
+				if (start == -1) {
+					start = count;
 				}
 				Integer len = key.getBytes().length;
-				if(start == -1){
-					start=count;
+				if (start == -1) {
+					start = count;
 				}
-				count+=len+4;
-				blockSize+=len+4;
-				Slice values = new Slice(4+len);
+				count += len + 4;
+				blockSize += len + 4;
+				Slice values = new Slice(4 + len);
 				values.putInt(len);
 				values.put(key.getBytes());
 				fos.write(values.array());
-				if(blockSize>=32768){
+				if (blockSize >= 32768) {
 					Position pos = Position.build(start, count, key);
 					index.put(key, pos);
-					blockSize=0;
+					blockSize = 0;
 					start = -1;
 				}
 			}
-			
+
 			fos.flush();
-			
+
 			Position pos = Position.build(start, count, key);
 			index.put(key, pos);
-			
+
 			writeIndex(index, indexFos);
-			
+
 			fis1.close();
 			fis2.close();
-			
+
 			f1.delete();
 			f2.delete();
-			
+
 			meta.put(new FileData(indexPath, dataPath));
 
-			fileData1.setStatus(FileDataStatus.DELETING);
-			fileData2.setStatus(FileDataStatus.DELETING);
+			fileData1.setStatus(FileDataStatus.DELETED);
+			fileData2.setStatus(FileDataStatus.DELETED);
 
 			logNumber.incrementAndGet();
 			return true;
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			LOG.error("MemCache mergeFile don't found file.",e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.error("MemCache mergeFile I/O exception.",e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOG.error("MemCache mergeFile exception.",e);
 		} finally {
 			isMerge = false;
 			mergeLock.unlock();
 		}
 		return false;
-	}
-	
-	public static void main(String[] args) throws InterruptedException {
-		MemCache cache = new MemCache("/tmp");
-		Stopwatch s = Stopwatch.createStarted();
-		for(int i = 0 ; i< 10000000;i++){
-    		String key = i+"";
-    		for(int j = key.length();j<10;j++){
-    			key="0"+key;
-    		}
-    		cache.put(key);
-    	}
-		System.out.println(s.elapsed(TimeUnit.MILLISECONDS));
-		
-		for(int i = 0 ; i < 10000000;i++)
-		System.out.println(cache.get("0008888888"));
-		
 	}
 	
 }

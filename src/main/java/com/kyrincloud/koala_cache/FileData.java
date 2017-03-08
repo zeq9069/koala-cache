@@ -18,7 +18,7 @@ import org.apache.commons.logging.LogFactory;
 
 public class FileData {
 	
-private static final Log LOG = LogFactory.getLog(IndexCache.class);
+private static final Log LOG = LogFactory.getLog(FileData.class);
 	
 	private Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
 		public int compare(String o1, String o2) {
@@ -36,10 +36,6 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 	ReentrantLock lock = new ReentrantLock();
 	
 	MappedByteBuffer map ;
-	
-//	//预分配一个block（32k）字节，稍大一些，因为我们不一定是严格意义上的32K
-//	//可以提高分配带来的时间消耗
-//	private ByteBuffer block = ByteBuffer.allocate(32*1024+4+1024);
 	
 	public String indexPath;
 	
@@ -61,7 +57,7 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 			map = dataChannel.map(MapMode.READ_ONLY, 0, dataChannel.size());
 			load();
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.error("FileData init fail.",e);
 		}
 	}
 	
@@ -133,36 +129,47 @@ private static final Log LOG = LogFactory.getLog(IndexCache.class);
 		return this.status;
 	}
 	
-	public synchronized void clear(){
-		File index = new File(indexPath);
-		File data = new File(dataPath);
-		if(index.exists()){
-			index.delete();
-		}
-		if(data.exists()){
-			data.delete();
+	public synchronized void clear() {
+
+		try {
+			if (indexChannel != null) {
+				indexChannel.close();
+			}
+			if (dataChannel != null && dataChannel.isOpen()) {
+				dataChannel.close();
+			}
+			File index = new File(indexPath);
+			File data = new File(dataPath);
+			if (index.exists()) {
+				index.delete();
+			}
+			if (data.exists()) {
+				data.delete();
+			}
+		} catch (IOException e) {
+			LOG.error("FileData clear fial.",e);
 		}
 	}
 
-	public synchronized String searchCache(String key) throws Exception{
-		//这种分配貌似比直接bytebuffer.allact效率要高一些
-		
+	public synchronized String searchCache(String key) throws Exception {
+		// 这种分配貌似比直接bytebuffer.allact效率要高一些
+
 		Position pos = get(key);
-		
-		if(pos == null){
+
+		if (pos == null) {
+			LOG.warn("Don't found Postion.");
 			return null;
 		}
-		
-		Slice slice = new Slice((int)(pos.getEnd()-pos.getStart()+1));
-		
+
+		Slice slice = new Slice((int) (pos.getEnd() - pos.getStart() + 1));
+
 		ByteBuffer data = map.duplicate();
-		data.position((int)pos.getStart());
+		data.position((int) pos.getStart());
 		data.get(slice.array());
-		
+
 		Block b = new Block(slice);
 		String result = b.get(key);
 		return result;
 	}
-	
 
 }
