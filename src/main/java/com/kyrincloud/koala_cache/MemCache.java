@@ -13,6 +13,7 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -63,7 +64,15 @@ public class MemCache {
 	}
 	
 	public void put(String key) {
+		if (table.getSize() >= MAX_SIZE && isSchedule)
+			try {
+				TimeUnit.MILLISECONDS.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
 		table.put(key);
+		
 		if (table.getSize() >= MAX_SIZE && !isSchedule) {
 			exec.submit(new Runnable() {
 				public void run() {
@@ -105,7 +114,7 @@ public class MemCache {
 				}
 			}
 		};
-		timer.schedule(task, 10 * 1000,1000);
+		timer.schedule(task, 60 * 1000,60 * 1000);
 	}
 	
 	private void mayScheduce() {
