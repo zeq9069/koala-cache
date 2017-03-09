@@ -9,6 +9,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.Comparator;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -84,7 +85,10 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		if(key == null){
 			return null;
 		}
-        return this.index.get(key);
+		
+		Entry<String, Position> values = index.ceilingEntry(key);
+		
+        return values.getValue();
 	}
 	
 	public String getNumber(){
