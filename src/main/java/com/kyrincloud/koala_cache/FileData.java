@@ -42,6 +42,8 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 	
 	private FileDataStatus status = FileDataStatus.LIVING;
 	
+	private long size;
+	
 	@SuppressWarnings("resource")
 	public FileData(String indexPath , String dataPath){
 		this.indexPath = indexPath;
@@ -52,6 +54,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 			indexChannel = new FileInputStream(index);
 			dataChannel = new RandomAccessFile(new File(dataPath),"rw").getChannel();
 			map = dataChannel.map(MapMode.READ_ONLY, 0, dataChannel.size());
+			size = dataChannel.size();
 			load();
 		} catch (IOException e) {
 			LOG.error("FileData init fail.",e);
@@ -87,7 +90,9 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		}
 		
 		Entry<String, Position> values = index.ceilingEntry(key);
-		
+		if(values == null){
+			return null;
+		}
         return values.getValue();
 	}
 	
@@ -105,6 +110,10 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 	
 	public void setStatus(FileDataStatus status){
 		this.status = status;
+	}
+	
+	public long size(){
+		return size;
 	}
 	
 	public FileDataStatus getStatus(){
@@ -133,13 +142,12 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		}
 	}
 
-	public synchronized String searchCache(String key) throws Exception {
+	public String searchCache(String key) throws Exception {
 		// 这种分配貌似比直接bytebuffer.allact效率要高一些
 
 		Position pos = get(key);
 
 		if (pos == null) {
-			LOG.warn("Don't found Postion.");
 			return null;
 		}
 

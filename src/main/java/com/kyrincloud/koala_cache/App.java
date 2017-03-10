@@ -16,7 +16,10 @@ public class App
 {
 	
 	public static void main(String[] args) {
+		
 		MemCache cache = new MemCache("/tmp");
+		
+		Stopwatch w = Stopwatch.createStarted();
 		for(int i = 0 ; i< 10000000;i++){
     		String key = i+"";
     		for(int j = key.length();j<10;j++){
@@ -24,14 +27,19 @@ public class App
     		}
     		cache.put(key);
     	}
+		System.out.println("写耗时："+w.elapsed(TimeUnit.MILLISECONDS));
 		
+		Stopwatch s = Stopwatch.createStarted();
 		for(int i = 0 ; i < 10000000;i++){
-			Stopwatch s = Stopwatch.createStarted();
-			cache.get("0008888888");
-			long t = s.elapsed(TimeUnit.MILLISECONDS);
-			if(t >= 1)
-				System.out.println(t);
+			Stopwatch y = Stopwatch.createStarted();
+			if(cache.get("0008888888") == null){
+				System.out.println("没查询到~~~");
+			}
+			long yy = y.elapsed(TimeUnit.MILLISECONDS);
+			if(yy >= 1)
+			System.out.println(yy);
 		}
+		System.out.println("读耗时："+s.elapsed(TimeUnit.MILLISECONDS));
 	}
     
 }

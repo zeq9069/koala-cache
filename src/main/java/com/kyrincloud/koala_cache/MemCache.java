@@ -32,6 +32,7 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
  * Bug : 当put的数据量太大的时候，会导致old spaces 被打满(后期或许会使用堆外内存)（目前通过full gc是可以回收的）
  * Bug : 读和文件合并存在冲突的问题(已解决)
  * Bug : 读与文件合并的优化
+ * bug : 读写速度优化
  */
 public class MemCache {
 	
@@ -42,8 +43,6 @@ public class MemCache {
 	private Table immuMemTable = null;
 	
 	private long MAX_SIZE = 2<<21;
-	
-	private ReentrantLock mergeLock = new ReentrantLock();
 	
 	private AtomicInteger logNumber = new AtomicInteger(0);
 	
@@ -76,7 +75,6 @@ public class MemCache {
 		if (table.getSize() >= MAX_SIZE && !isSchedule) {
 			exec.submit(new Runnable() {
 				public void run() {
-					System.out.println("开始合并...");
 					mayScheduce();
 				}
 			});
@@ -104,17 +102,15 @@ public class MemCache {
 			@Override
 			public void run() {
 				if(!isSchedule && !table.isEmpty()){
-					System.out.println("开始调度...");
 					mayScheduce();
 				}
 				
 				if(!isMerge && meta.live() >= 2){
-					System.out.println("开始合并...");
 					mergeFile();
 				}
 			}
 		};
-		timer.schedule(task, 60 * 1000,60 * 1000);
+		timer.schedule(task, 10 * 1000, 10 * 1000);
 	}
 	
 	private void mayScheduce() {
@@ -184,11 +180,6 @@ public class MemCache {
 			
 			logNumber.incrementAndGet();
 			meta.put(new FileData(indexPath, dataPath));
-			// 文件合并
-			if (meta.live() >= 2) {
-				System.out.println("文件开始合并...");
-				mergeFile();
-			}
 
 		} catch (FileNotFoundException e) {
 			LOG.error("MemCache mayScheduce don't found file.",e);
@@ -224,16 +215,11 @@ public class MemCache {
 	
 	@SuppressWarnings("resource")
 	private boolean mergeFile() {
-		if (isMerge) {
-			return false;
-		}
 		FileOutputStream fos = null;
 		FileOutputStream indexFos = null;
 		FileInputStream fis1 = null;
 		FileInputStream fis2 = null;
 		try {
-			isMerge = true;
-			mergeLock.lock();
 			FileData fileData1 = meta.toMerging();
 			FileData fileData2 = meta.toMerging();
 
@@ -310,9 +296,6 @@ public class MemCache {
 			LOG.error("MemCache mergeFile I/O exception.",e);
 		} catch (Exception e) {
 			LOG.error("MemCache mergeFile exception.",e);
-		} finally {
-			isMerge = false;
-			mergeLock.unlock();
 		}
 		return false;
 	}

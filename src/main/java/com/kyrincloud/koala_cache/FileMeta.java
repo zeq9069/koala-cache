@@ -1,6 +1,8 @@
 package com.kyrincloud.koala_cache;
 
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -64,13 +66,20 @@ public class FileMeta {
 	}
 	
 	public synchronized FileData toMerging(){
+		FileData res = null;
 		for(Iterator<FileData> it = filenames.values().iterator();it.hasNext();){
 			FileData data = it.next();
 			if(data.getStatus().code() == FileDataStatus.LIVING.code()){
-				data.setStatus(FileDataStatus.MERGING);
-				return data;
+				if(res == null){
+					res = data;
+				}else if(res.size() > data.size()){
+					res = data;
+				}
 			}
 		}
-		return null;
+		if(res != null){
+			res.setStatus(FileDataStatus.MERGING);
+		}
+		return res;
 	}
 }
