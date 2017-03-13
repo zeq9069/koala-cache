@@ -1,12 +1,14 @@
 package com.kyrincloud.koala_cache;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -15,7 +17,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
  * Bug : 读和文件合并存在冲突的问题(已解决)
  * Bug : 读与文件合并的优化
  * bug : 读写速度优化
+ * bug : 存在查询不到的问题
  */
 public class MemCache {
 	
@@ -58,8 +60,31 @@ public class MemCache {
 	
 	public MemCache(String basePath){
 		this.basePath = basePath;
+		load(basePath);
 		table = new Table();
 		initSchedule();
+	}
+	
+	private void load(String basePath){
+		File file = new File(basePath);
+		
+		if(file.isDirectory()){
+			File[] files = file.listFiles(new FileFilter() {
+				
+				public boolean accept(File pathname) {
+					if(pathname.getName().contains(".index")){
+						return true;
+					}
+					return false;
+				}
+			});
+			
+			for(File f : files){
+				meta.put(new FileData(f.getAbsolutePath(), f.getAbsolutePath().replace(".index", ".data")));
+			}
+			
+		}
+		
 	}
 	
 	public void put(String key) {
@@ -105,7 +130,7 @@ public class MemCache {
 					mayScheduce();
 				}
 				
-				if(!isMerge && meta.live() >= 2){
+				if( meta.live() >= 2){
 					mergeFile();
 				}
 			}
@@ -217,19 +242,23 @@ public class MemCache {
 	private boolean mergeFile() {
 		FileOutputStream fos = null;
 		FileOutputStream indexFos = null;
-		FileInputStream fis1 = null;
-		FileInputStream fis2 = null;
 		try {
-			FileData fileData1 = meta.toMerging();
-			FileData fileData2 = meta.toMerging();
+			List<FileData> fileDatas = meta.toMergingList();
 
-			File f1 = new File(fileData1.getDataPath());
-			File f2 = new File(fileData2.getDataPath());
+			List<FileIterator> iterators = Lists.newArrayList();
+			
+			for(FileData fileData:fileDatas){
+				
+				File file = new File(fileData.getDataPath());
+	
+				FileInputStream fis = new FileInputStream(file);
+				
+				FileIterator it = new FileIterator(fis.getChannel());
+				
+				iterators.add(it);
+			}
 
-			fis1 = new FileInputStream(f1);
-			fis2 = new FileInputStream(f2);
-			FileIterator it1 = new FileIterator(fis1.getChannel());
-			FileIterator it2 = new FileIterator(fis2.getChannel());
+			MergeIterator merge = new MergeIterator(iterators);
 
 			int currentNum = logNumber.incrementAndGet();
 			String dataPath = basePath + "/" + currentNum + ".data";
@@ -238,7 +267,6 @@ public class MemCache {
 			fos = new FileOutputStream(new File(dataPath));
 			indexFos = new FileOutputStream(new File(indexPath));
 
-			MergeIterator merge = new MergeIterator(Lists.newArrayList(it1, it2));
 
 			Map<String, Position> index = new TreeMap<String, Position>(new Comparator<String>() {
 				public int compare(String o1, String o2) {
@@ -280,14 +308,13 @@ public class MemCache {
 
 			writeIndex(index, indexFos);
 
-			fis1.close();
-			fis2.close();
-
 			meta.put(new FileData(indexPath, dataPath));
 
-			fileData1.setStatus(FileDataStatus.DELETED);
-			fileData2.setStatus(FileDataStatus.DELETED);
-
+			for(FileData fileData : fileDatas){
+				fileData.setStatus(FileDataStatus.DELETED);
+				fileData.clear();
+			}
+			
 			logNumber.incrementAndGet();
 			return true;
 		} catch (FileNotFoundException e) {
