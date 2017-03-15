@@ -6,7 +6,7 @@ package com.kyrincloud.koala_cache;
  * @author kyrin
  *
  */
-public class Slice {
+public class Slice implements Comparable<Slice>{
 
 	byte[] block;
 
@@ -132,4 +132,25 @@ public class Slice {
 		System.out.println(slice.getInt());
 	}
 
+	public int compareTo(Slice that) {
+		if (this == that) {
+			return 0;
+		}
+		if (this.block == that.block && position == that.position && this.limit == that.limit) {
+			return 0;
+		}
+
+		if (this.size() != that.size()) {
+			return this.size() - that.size();
+		}
+
+		for (int i = 0; i < this.size(); i++) {
+			int thisByte = 0xFF & this.block[this.position + i];
+			int thatByte = 0xFF & that.block[that.position + i];
+			if (thisByte != thatByte) {
+				return (thisByte) - (thatByte);
+			}
+		}
+		return 0;
+	}
 }
