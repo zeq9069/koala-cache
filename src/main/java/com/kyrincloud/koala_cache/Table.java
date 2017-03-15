@@ -13,33 +13,36 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Table {
 
-	private TreeMap<String, Byte> memcache;
+	private TreeMap<Slice, Slice> memcache;
 
 	private int size = 0;
 
 	private ReentrantLock lock = new ReentrantLock();
 
 	public Table() {
-		memcache = new TreeMap<String, Byte>(new Comparator<String>() {
-			public int compare(String o1, String o2) {
+		memcache = new TreeMap<Slice, Slice>(new Comparator<Slice>() {
+			public int compare(Slice o1, Slice o2) {
 				return o1.compareTo(o2);
 			}
 		});
 	}
 
-	public void put(String key) {
+	public void put(byte[] key , byte[] value) {
 		try {
 			lock.lock();
-			size += key.length() + 4;
-			memcache.put(key, (byte) 0);
+			Slice k = new Slice(key);
+			Slice v = new Slice(value);
+			size += k.size() + v.size() + 4 + 4;
+			memcache.put(k, v);
 		} finally {
 			lock.unlock();
 		}
 	}
 
-	public String get(String key) {
-		Byte value = memcache.get(key);
-		return value == null ? null : key;
+	public Slice get(byte[] key) {
+		Slice k = new Slice(key);
+		Slice value = memcache.get(k);
+		return value == null ? null : k;
 	}
 
 	public int getSize() {
@@ -50,11 +53,11 @@ public class Table {
 		this.size = size;
 	}
 
-	public void setMemcache(TreeMap<String, Byte> memcache) {
+	public void setMemcache(TreeMap<Slice,Slice> memcache) {
 		this.memcache = memcache;
 	}
 
-	public TreeMap<String, Byte> getMemcache() {
+	public TreeMap<Slice, Slice> getMemcache() {
 		return memcache;
 	}
 
@@ -62,7 +65,7 @@ public class Table {
 		return memcache.size();
 	}
 
-	public Set<String> getKeySet() {
+	public Set<Slice> getKeySet() {
 		return memcache.keySet();
 	}
 

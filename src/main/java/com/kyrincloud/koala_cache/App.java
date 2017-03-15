@@ -25,16 +25,14 @@ public class App
     		for(int j = key.length();j<10;j++){
     			key="0"+key;
     		}
-    		cache.put(key);
+    		cache.put(key.getBytes(),key.getBytes());
     	}
 		System.out.println("写耗时："+w.elapsed(TimeUnit.MILLISECONDS));
 		
 		Stopwatch s = Stopwatch.createStarted();
 		for(int i = 0 ; i < 10000000;i++){
 			Stopwatch y = Stopwatch.createStarted();
-			if(cache.get("0008888888") == null){
-				System.out.println("没查询到~~~");
-			}
+			System.out.println(cache.get("0008888888".getBytes()));
 			long yy = y.elapsed(TimeUnit.MILLISECONDS);
 			if(yy >= 1)
 			System.out.println(yy);

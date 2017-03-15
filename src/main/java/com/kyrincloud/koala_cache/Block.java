@@ -18,7 +18,7 @@ public class Block {
 		this.block = block;
 	}
 	
-	public String get(String key){//优化以后
+	public Slice get(Slice key){//优化以后
 		List<Integer> indexs = new ArrayList<Integer>();
 		for(;block.remaining()>4;){
 			indexs.add(block.position());
@@ -33,7 +33,7 @@ public class Block {
         int mid;
         while(lo<=hi){
             mid=(lo+hi)/2;
-            String k = indexOf(indexs.get(mid));
+            Slice k = indexOf(indexs.get(mid));
             if(key.equals(k)){
             	return key;
             }else if(key.compareTo(k)>0){
@@ -45,11 +45,11 @@ public class Block {
 		return null;
 	}
 	
-	public String indexOf(int offset){
+	public Slice indexOf(int offset){
 		block.position(offset);
 		int len = block.getInt();
-		byte[] b = new byte[len];
-		block.get(b);
-		return new String(b);
+		Slice b = new Slice(len);
+		block.get(b.array());
+		return b;
 	}
 }

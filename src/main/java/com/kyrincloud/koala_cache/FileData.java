@@ -20,8 +20,8 @@ public class FileData {
 	
 private static final Log LOG = LogFactory.getLog(FileData.class);
 	
-	private ConcurrentSkipListMap<String, Position> index = new ConcurrentSkipListMap<String, Position>(new Comparator<String>() {
-		public int compare(String o1, String o2) {
+	private ConcurrentSkipListMap<Slice, Position> index = new ConcurrentSkipListMap<Slice, Position>(new Comparator<Slice>() {
+		public int compare(Slice o1, Slice o2) {
 			return o1.compareTo(o2);
 		}
 	});
@@ -66,9 +66,8 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		while(indexChannel.available()>4){
 			Slice kSlice = new Slice(4);
 			indexChannel.read(kSlice.array());
-			byte[] kk = new byte[kSlice.getInt()];
-			indexChannel.read(kk);
-			String key = new String(kk);
+			Slice key = new Slice(kSlice.getInt());
+			indexChannel.read(key.array());
 			
 			Slice start = new Slice(8);
 
@@ -84,12 +83,12 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		}
 	}
 	
-	private Position get(String key){
+	private Position get(Slice key){
 		if(key == null){
 			return null;
 		}
 		
-		Entry<String, Position> values = index.ceilingEntry(key);
+		Entry<Slice, Position> values = index.ceilingEntry(key);
 		if(values == null){
 			return null;
 		}
@@ -142,7 +141,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		}
 	}
 
-	public String searchCache(String key) throws Exception {
+	public Slice searchCache(Slice key) throws Exception {
 		// 这种分配貌似比直接bytebuffer.allact效率要高一些
 
 		Position pos = get(key);
@@ -158,7 +157,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		data.get(slice.array());
 
 		Block b = new Block(slice);
-		String result = b.get(key);
+		Slice result = b.get(key);
 		return result;
 	}
 

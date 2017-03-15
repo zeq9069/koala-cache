@@ -5,11 +5,13 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
+import com.kyrincloud.koala_cache.Slice;
+
 public class FileIterator implements Comparable<FileIterator>{
 	
 	private MappedByteBuffer map;
 	
-	private String nextElement;
+	private Slice nextElement;
 	
 	public FileIterator(FileChannel channel) {
 		try {
@@ -20,29 +22,29 @@ public class FileIterator implements Comparable<FileIterator>{
 		}
 	}
 
-	public String getNextElement() {
+	public Slice getNextElement() {
 		return nextElement;
 	}
 	
 	public boolean hasNext(){
 		if(map.remaining() > 4){
 			int len = map.getInt();
-			byte[] key = new byte[len];
-			map.get(key);
-			nextElement = new String(key);
+			Slice key = new Slice(len);
+			map.get(key.array());
+			nextElement = key;
 			return true;
 		}
 		nextElement = null;
 		return false;
 	}
 	
-	public String next(){
-		String key = nextElement;
+	public Slice next(){
+		Slice key = nextElement;
 		return key;
 	}
 
 	public int compareTo(FileIterator iterator) {
-		String nextKey = iterator.getNextElement();
+		Slice nextKey = iterator.getNextElement();
 		if(nextKey == null && nextElement != null ){
 			return -1;
 		}

@@ -87,7 +87,7 @@ public class MemCache {
 		
 	}
 	
-	public void put(String key) {
+	public void put(byte[] key , byte[] value) {
 		if (table.getSize() >= MAX_SIZE && isSchedule)
 			try {
 				TimeUnit.MILLISECONDS.sleep(1);
@@ -95,7 +95,7 @@ public class MemCache {
 				e.printStackTrace();
 			}
 			
-		table.put(key);
+		table.put(key,value);
 		
 		if (table.getSize() >= MAX_SIZE && !isSchedule) {
 			exec.submit(new Runnable() {
@@ -106,8 +106,8 @@ public class MemCache {
 		}
 	}
 	
-	public String get(String key){
-		String value = table.get(key);
+	public Slice get(byte[] key){
+		Slice value = table.get(key);
 		if(value != null){
 			return value;
 		}
@@ -117,7 +117,7 @@ public class MemCache {
 		if(value != null){
 			return value;
 		}
-		return meta.search(key);
+		return meta.search(new Slice(key));
 	}
 	
 	private void initSchedule(){
@@ -160,9 +160,9 @@ public class MemCache {
 			fos = new FileOutputStream(new File(dataPath));
 			indexFos = new FileOutputStream(new File(indexPath));
 
-			Map<String,Position> index = new TreeMap<String, Position>(new Comparator<String>() {
+			Map<Slice,Position> index = new TreeMap<Slice, Position>(new Comparator<Slice>() {
 
-				public int compare(String o1, String o2) {
+				public int compare(Slice o1, Slice o2) {
 					return o1.compareTo(o2);
 				}
 			});
@@ -171,12 +171,12 @@ public class MemCache {
 			int blockSize = 0;
 			long start = -1;
 			int total = 0;
-			for (String key : immuMemTable.getKeySet()) {
+			for (Slice key : immuMemTable.getKeySet()) {
 				total++;
 				if(start == -1){
 					start=count;
 				}
-				Integer len = key.getBytes().length;
+				Integer len = key.size();
 				if(start == -1){
 					start=count;
 				}
@@ -184,7 +184,7 @@ public class MemCache {
 				blockSize+=len+4;
 				Slice values = new Slice(4+len);
 				values.putInt(len);
-				values.put(key.getBytes());
+				values.put(key.array());
 				fos.write(values.array());
 				if(blockSize>=32768){
 					Position pos = Position.build(start, count);
@@ -223,13 +223,13 @@ public class MemCache {
 		}
 	}
 	
-	public void writeIndex(Map<String,Position> index , FileOutputStream fos) throws Exception{
-		Iterator<String> keys = index.keySet().iterator();
+	public void writeIndex(Map<Slice,Position> index , FileOutputStream fos) throws Exception{
+		Iterator<Slice> keys = index.keySet().iterator();
 		while(keys.hasNext()){
-			String key = keys.next();
-			Slice values = new Slice(4+8+8+key.length());
-			values.putInt(key.length());
-			values.put(key.getBytes());
+			Slice key = keys.next();
+			Slice values = new Slice(4+8+8+key.size());
+			values.putInt(key.size());
+			values.put(key.array());
 			values.putLong(index.get(key).getStart());
 			values.putLong(index.get(key).getEnd());
 			fos.write(values.array());
@@ -268,8 +268,8 @@ public class MemCache {
 			indexFos = new FileOutputStream(new File(indexPath));
 
 
-			Map<String, Position> index = new TreeMap<String, Position>(new Comparator<String>() {
-				public int compare(String o1, String o2) {
+			Map<Slice, Position> index = new TreeMap<Slice, Position>(new Comparator<Slice>() {
+				public int compare(Slice o1, Slice o2) {
 					return o1.compareTo(o2);
 				}
 			});
@@ -277,13 +277,13 @@ public class MemCache {
 			long count = 0;
 			int blockSize = 0;
 			long start = -1;
-			String key = null;
+			Slice key = null;
 			while (merge.hasNext()) {
 				key = merge.next();
 				if (start == -1) {
 					start = count;
 				}
-				Integer len = key.getBytes().length;
+				Integer len = key.size();
 				if (start == -1) {
 					start = count;
 				}
@@ -291,7 +291,7 @@ public class MemCache {
 				blockSize += len + 4;
 				Slice values = new Slice(4 + len);
 				values.putInt(len);
-				values.put(key.getBytes());
+				values.put(key.array());
 				fos.write(values.array());
 				if (blockSize >= 32768) {
 					Position pos = Position.build(start, count);

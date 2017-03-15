@@ -34,12 +34,12 @@ public class FileMeta {
 		return filenames.get(number);
 	}
 	
-	public String search(String key){
+	public Slice search(Slice key){
 		try{
 			for(Iterator<FileData> it = filenames.values().iterator();it.hasNext();){
 				FileData data = it.next();
 				if(data.getStatus().code() != FileDataStatus.DELETED.code()){
-					String value = data.searchCache(key);
+					Slice value = data.searchCache(key);
 					if(value != null){
 						return value;
 					}
