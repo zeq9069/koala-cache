@@ -126,10 +126,7 @@ public class MemCache {
 		if(value != null){
 			return value;
 		}
-		if(meta.live() > 0){
-			return meta.search(new Slice(key));
-		}
-		return null;
+		return meta.search(new Slice(key));
 	}
 	
 	private void initSchedule(){
