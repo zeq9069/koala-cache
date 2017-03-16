@@ -48,7 +48,7 @@ public class FileMeta {
 		}catch (Exception e) {
 			LOG.error("FileData search key fail.",e);
 		}
-		System.out.println("文件数量："+filenames.size());
+		System.out.println("文件数量："+filenames.size()+" , 存货树良:"+live());
 		return null;
 	}
 	
@@ -59,10 +59,11 @@ public class FileMeta {
 			if(data.getStatus().code() == FileDataStatus.LIVING.code()){
 				living++;
 			}else if(data.getStatus().code() == FileDataStatus.DELETED.code()){
-				filenames.remove(data.getNumber());
+				it.remove();
 				data.clear();
 			}
 		}
+		System.out.println("最终数量："+filenames.size());
 		return living;
 	}
 	
