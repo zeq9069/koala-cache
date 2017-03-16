@@ -5,13 +5,14 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
+import com.kyrincloud.koala_cache.Entity;
 import com.kyrincloud.koala_cache.Slice;
 
 public class FileIterator implements Comparable<FileIterator>{
 	
 	private MappedByteBuffer map;
 	
-	private Slice nextElement;
+	private Entity nextElement;
 	
 	public FileIterator(FileChannel channel) {
 		try {
@@ -22,7 +23,7 @@ public class FileIterator implements Comparable<FileIterator>{
 		}
 	}
 
-	public Slice getNextElement() {
+	public Entity getNextElement() {
 		return nextElement;
 	}
 	
@@ -31,30 +32,41 @@ public class FileIterator implements Comparable<FileIterator>{
 			int len = map.getInt();
 			Slice key = new Slice(len);
 			map.get(key.array());
-			nextElement = key;
+			
+			int vlen = map.getInt();
+			Slice value = new Slice(vlen);
+			map.get(value.array());
+			
+			nextElement = new Entity(key, value);
 			return true;
 		}
 		nextElement = null;
 		return false;
 	}
 	
-	public Slice next(){
-		Slice key = nextElement;
-		return key;
+	public Entity next(){
+		Entity entity = nextElement;
+		return entity;
 	}
 
 	public int compareTo(FileIterator iterator) {
-		Slice nextKey = iterator.getNextElement();
-		if(nextKey == null && nextElement != null ){
-			return -1;
-		}
-		if(nextElement == null && nextKey != null ){
-			return 1;
-		}
-		if(nextKey == null && nextElement == null){
+		Entity nextEntity = iterator.getNextElement();
+		if(nextEntity == null && nextElement == null){
 			return 0;
 		}
-		return nextElement.compareTo(nextKey);
+		if(nextEntity == null || nextElement == null){
+			return nextElement == null ? -1 : 1;
+		}
+		if(nextEntity.getKey() == null && nextElement.getKey() != null ){
+			return -1;
+		}
+		if(nextElement.getKey() == null && nextEntity.getKey() != null ){
+			return 1;
+		}
+		if(nextEntity.getKey() == null && nextElement.getKey() == null){
+			return 0;
+		}
+		return nextElement.getKey().compareTo(nextEntity.getKey());
 	}
 
 }

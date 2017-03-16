@@ -3,13 +3,14 @@ package com.kyrincloud.koala_cache.compact;
 import java.util.List;
 import java.util.PriorityQueue;
 
+import com.kyrincloud.koala_cache.Entity;
 import com.kyrincloud.koala_cache.Slice;
 
 public class MergeIterator {
 	
 	private PriorityQueue<FileIterator> queue;
 	
-	private Slice nextElement;
+	private Entity nextElement;
 	
 	public MergeIterator(List<FileIterator> iterators) {
 		queue = new PriorityQueue<FileIterator>(iterators);
@@ -27,13 +28,13 @@ public class MergeIterator {
 		return hasNext;
 	}
 	
-	public Slice next(){
-		Slice key =  nextElement;
+	public Entity next(){
+		Entity entity =  nextElement;
 		nextElement = null;
-		return key;
+		return entity;
 	}
 
-	public Slice getNextElement() {
+	public Entity getNextElement() {
 		return nextElement;
 	}
 	

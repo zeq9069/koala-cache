@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
@@ -59,13 +60,17 @@ public class MemCache {
 	private String basePath;
 	
 	public MemCache(String basePath){
+		this(basePath, false);
+	}
+	
+	public MemCache(String basePath , boolean reload){
 		this.basePath = basePath;
-		load(basePath);
+		load(basePath,reload);
 		table = new Table();
 		initSchedule();
 	}
 	
-	private void load(String basePath){
+	private void load(String basePath , boolean reload){
 		File file = new File(basePath);
 		
 		if(file.isDirectory()){
@@ -80,11 +85,15 @@ public class MemCache {
 			});
 			
 			for(File f : files){
-				meta.put(new FileData(f.getAbsolutePath(), f.getAbsolutePath().replace(".index", ".data")));
+				if(reload){
+					meta.put(new FileData(f.getAbsolutePath(), f.getAbsolutePath().replace(".index", ".data")));
+				}else{
+					File data = new File(f.getAbsolutePath().replace(".index", ".data"));
+					data.deleteOnExit();
+					f.deleteOnExit();
+				}
 			}
-			
 		}
-		
 	}
 	
 	public void put(byte[] key , byte[] value) {
@@ -117,7 +126,10 @@ public class MemCache {
 		if(value != null){
 			return value;
 		}
-		return meta.search(new Slice(key));
+		if(meta.live() > 0){
+			return meta.search(new Slice(key));
+		}
+		return null;
 	}
 	
 	private void initSchedule(){
@@ -171,29 +183,27 @@ public class MemCache {
 			int blockSize = 0;
 			long start = -1;
 			int total = 0;
-			for (Slice key : immuMemTable.getKeySet()) {
+			for (Entry<Slice, Slice> entry : immuMemTable.entrySet()) {
 				total++;
 				if(start == -1){
 					start=count;
 				}
-				Integer len = key.size();
+				Slice bytes = new Entity(entry.getKey(), entry.getValue()).encode();
+				
 				if(start == -1){
 					start=count;
 				}
-				count+=len+4;
-				blockSize+=len+4;
-				Slice values = new Slice(4+len);
-				values.putInt(len);
-				values.put(key.array());
-				fos.write(values.array());
+				count+=bytes.size();
+				blockSize+=bytes.size();
+				fos.write(bytes.array());
 				if(blockSize>=32768){
 					Position pos = Position.build(start, count);
-					index.put(key, pos);
+					index.put(entry.getKey(), pos);
 					blockSize=0;
 					start = -1;
 				}else if(total == immuMemTable.getTableSize()){
 					Position pos = Position.build(start, count);
-					index.put(key, pos);
+					index.put(entry.getKey(), pos);
 					blockSize=0;
 					start = -1;
 				}
@@ -277,25 +287,24 @@ public class MemCache {
 			long count = 0;
 			int blockSize = 0;
 			long start = -1;
-			Slice key = null;
+			Entity entity = null;
 			while (merge.hasNext()) {
-				key = merge.next();
+				entity = merge.next();
 				if (start == -1) {
 					start = count;
 				}
-				Integer len = key.size();
+				Slice bytes = entity.encode();
 				if (start == -1) {
 					start = count;
 				}
-				count += len + 4;
-				blockSize += len + 4;
-				Slice values = new Slice(4 + len);
-				values.putInt(len);
-				values.put(key.array());
-				fos.write(values.array());
+				count += bytes.size();
+				blockSize += bytes.size();
+				
+				fos.write(bytes.array());
+				
 				if (blockSize >= 32768) {
 					Position pos = Position.build(start, count);
-					index.put(key, pos);
+					index.put(entity.getKey(), pos);
 					blockSize = 0;
 					start = -1;
 				}
@@ -304,7 +313,7 @@ public class MemCache {
 			fos.flush();
 
 			Position pos = Position.build(start, count);
-			index.put(key, pos);
+			index.put(entity.getKey(), pos);
 
 			writeIndex(index, indexFos);
 

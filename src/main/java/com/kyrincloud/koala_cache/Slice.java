@@ -97,6 +97,7 @@ public class Slice implements Comparable<Slice>{
 
 	public void get(byte[] value) {
 		System.arraycopy(block, position, value, 0, value.length);
+		position+=value.length;
 	}
 
 	public byte[] getBlock() {

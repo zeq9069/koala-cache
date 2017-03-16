@@ -20,11 +20,12 @@ public class Block {
 	
 	public Slice get(Slice key){//优化以后
 		List<Integer> indexs = new ArrayList<Integer>();
-		for(;block.remaining()>4;){
+		for(;block.remaining()>8;){
 			indexs.add(block.position());
 			int len = block.getInt();
-			int idx = block.position()+len;
-			block.position(idx);
+			block.position(block.position()+len);
+			int vlen = block.getInt();
+			block.position(block.position() + vlen);
 		}
 		
 		//二分查询很快
@@ -33,10 +34,10 @@ public class Block {
         int mid;
         while(lo<=hi){
             mid=(lo+hi)/2;
-            Slice k = indexOf(indexs.get(mid));
-            if(key.equals(k)){
-            	return key;
-            }else if(key.compareTo(k)>0){
+            Entity entity = indexOf(indexs.get(mid));
+            if(key.compareTo(entity.getKey()) == 0){
+            	return entity.getValue();
+            }else if(key.compareTo(entity.getKey())>0){
                 lo=mid+1;
             }else{
                 hi=mid-1;
@@ -45,11 +46,16 @@ public class Block {
 		return null;
 	}
 	
-	public Slice indexOf(int offset){
+	public Entity indexOf(int offset){
 		block.position(offset);
-		int len = block.getInt();
-		Slice b = new Slice(len);
-		block.get(b.array());
-		return b;
+		int klen = block.getInt();
+		Slice k = new Slice(klen);
+		block.get(k.array());
+		
+		int vlen = block.getInt();
+		Slice v = new Slice(vlen);
+		block.get(v.array());
+		
+		return new Entity(k, v);
 	}
 }

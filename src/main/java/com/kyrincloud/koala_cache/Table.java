@@ -1,6 +1,7 @@
 package com.kyrincloud.koala_cache;
 
 import java.util.Comparator;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -71,6 +72,10 @@ public class Table {
 
 	public boolean isEmpty() {
 		return memcache.isEmpty();
+	}
+	
+	public Set<Entry<Slice, Slice>> entrySet(){
+		return memcache.entrySet();
 	}
 
 }

@@ -150,7 +150,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 			return null;
 		}
 
-		Slice slice = new Slice((int) (pos.getEnd() - pos.getStart() + 1));
+		Slice slice = new Slice((int) (pos.getEnd() - pos.getStart()));
 
 		ByteBuffer data = map.duplicate();
 		data.position((int) pos.getStart());
