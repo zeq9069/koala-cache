@@ -49,23 +49,19 @@ public class FileIterator implements Comparable<FileIterator>{
 		return entity;
 	}
 
+	//当其中一个为null的时候（说明一个FileIterator已经遍历完了），是不最大的，永远不会再去遍历这个Fileiterator了
 	public int compareTo(FileIterator iterator) {
 		Entity nextEntity = iterator.getNextElement();
-		if(nextEntity == null && nextElement == null){
-			return 0;
-		}
-		if(nextEntity == null || nextElement == null){
-			return nextElement == null ? -1 : 1;
-		}
-		if(nextEntity.getKey() == null && nextElement.getKey() != null ){
+		if((nextEntity == null || nextEntity.getKey() == null) && (nextElement != null && nextElement.getKey() != null) ){
 			return -1;
 		}
-		if(nextElement.getKey() == null && nextEntity.getKey() != null ){
+		if((nextElement == null || nextElement.getKey() == null ) && (nextEntity != null && nextEntity.getKey() != null )){
 			return 1;
 		}
-		if(nextEntity.getKey() == null && nextElement.getKey() == null){
+		if(( nextEntity == null || nextEntity.getKey() == null) && (nextElement == null || nextElement.getKey() == null)){
 			return 0;
 		}
+		
 		return nextElement.getKey().compareTo(nextEntity.getKey());
 	}
 

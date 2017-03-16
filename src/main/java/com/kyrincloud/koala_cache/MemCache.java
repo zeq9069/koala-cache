@@ -72,7 +72,6 @@ public class MemCache {
 	
 	private void load(String basePath , boolean reload){
 		File file = new File(basePath);
-		
 		if(file.isDirectory()){
 			File[] files = file.listFiles(new FileFilter() {
 				
@@ -89,8 +88,9 @@ public class MemCache {
 					meta.put(new FileData(f.getAbsolutePath(), f.getAbsolutePath().replace(".index", ".data")));
 				}else{
 					File data = new File(f.getAbsolutePath().replace(".index", ".data"));
-					data.deleteOnExit();
-					f.deleteOnExit();
+					data.delete();
+					f.delete();
+					System.out.println(">>>delete<<<");
 				}
 			}
 		}
@@ -139,6 +139,7 @@ public class MemCache {
 			@Override
 			public void run() {
 				if(!isSchedule && !table.isEmpty()){
+					System.out.println(">>>timer<<<");
 					mayScheduce();
 				}
 				
@@ -313,6 +314,7 @@ public class MemCache {
 			fos.flush();
 
 			Position pos = Position.build(start, count);
+			
 			index.put(entity.getKey(), pos);
 
 			writeIndex(index, indexFos);
@@ -321,7 +323,6 @@ public class MemCache {
 
 			for(FileData fileData : fileDatas){
 				fileData.setStatus(FileDataStatus.DELETED);
-				fileData.clear();
 			}
 			
 			logNumber.incrementAndGet();
