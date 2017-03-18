@@ -1,7 +1,7 @@
 package com.kyrincloud.koala_cache.comparator;
 
-import com.kyrincloud.koala_cache.Entity;
-import com.kyrincloud.koala_cache.Slice;
+import com.kyrincloud.koala_cache.core.Entity;
+import com.kyrincloud.koala_cache.core.Slice;
 
 /**
  * IP comparator 

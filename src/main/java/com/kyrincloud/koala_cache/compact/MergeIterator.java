@@ -3,8 +3,7 @@ package com.kyrincloud.koala_cache.compact;
 import java.util.List;
 import java.util.PriorityQueue;
 
-import com.kyrincloud.koala_cache.Entity;
-import com.kyrincloud.koala_cache.Slice;
+import com.kyrincloud.koala_cache.core.Entity;
 
 public class MergeIterator {
 	

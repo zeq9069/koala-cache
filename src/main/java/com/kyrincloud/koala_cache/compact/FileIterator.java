@@ -5,8 +5,8 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
-import com.kyrincloud.koala_cache.Entity;
-import com.kyrincloud.koala_cache.Slice;
+import com.kyrincloud.koala_cache.core.Entity;
+import com.kyrincloud.koala_cache.core.Slice;
 
 public class FileIterator implements Comparable<FileIterator>{
 	

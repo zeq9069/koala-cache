@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
 import com.google.common.collect.Lists;
-import com.kyrincloud.koala_cache.Slice;
+import com.kyrincloud.koala_cache.core.Slice;
 
 @SuppressWarnings("resource")
 public class CompactTest {

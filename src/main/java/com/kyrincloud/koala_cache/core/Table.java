@@ -1,4 +1,4 @@
-package com.kyrincloud.koala_cache;
+package com.kyrincloud.koala_cache.core;
 
 import java.util.Comparator;
 import java.util.Map.Entry;

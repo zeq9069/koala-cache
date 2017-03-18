@@ -1,4 +1,4 @@
-package com.kyrincloud.koala_cache;
+package com.kyrincloud.koala_cache.core;
 
 /**
  * 文件的状态：存活中，正在合并，已经删除

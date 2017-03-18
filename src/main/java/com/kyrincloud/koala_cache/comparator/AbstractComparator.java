@@ -1,7 +1,7 @@
 package com.kyrincloud.koala_cache.comparator;
 
-import com.kyrincloud.koala_cache.Entity;
-import com.kyrincloud.koala_cache.Slice;
+import com.kyrincloud.koala_cache.core.Entity;
+import com.kyrincloud.koala_cache.core.Slice;
 
 /**
  * 一个比较器是用来拿搜索的key跟每个Entity进行比较的工具，独立出来可以让用户自己定义比较的方式，也许是简单的

@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 import com.kyrincloud.koala_cache.comparator.IPComparator;
+import com.kyrincloud.koala_cache.core.MemCache;
 
 /**
  * 单机存储引擎验证

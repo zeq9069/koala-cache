@@ -1,4 +1,4 @@
-package com.kyrincloud.koala_cache;
+package com.kyrincloud.koala_cache.core;
 
 public class Entity {
 	
