@@ -30,12 +30,6 @@ import com.kyrincloud.koala_cache.compact.MergeIterator;
  * 核心操作类
  * 缓存实现，提供持久化机制，同时，内存达到一定的大小之后会被持久化到硬盘，然后生成的多个文件进行归并，最终生成一个有序的数据文件
  * @author zhangerqiang
- * 
- * Bug : 当put的数据量太大的时候，会导致old spaces 被打满(后期或许会使用堆外内存)（目前通过full gc是可以回收的）
- * Bug : 读和文件合并存在冲突的问题(已解决)
- * Bug : 读与文件合并的优化
- * bug : 读写速度优化
- * bug : 存在查询不到的问题
  */
 public class MemCache {
 	
