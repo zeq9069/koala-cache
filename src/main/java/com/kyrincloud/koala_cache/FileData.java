@@ -16,6 +16,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.kyrincloud.koala_cache.comparator.AbstractComparator;
+
 public class FileData {
 	
 private static final Log LOG = LogFactory.getLog(FileData.class);
@@ -44,10 +46,13 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 	
 	private long size;
 	
+	private AbstractComparator comparator;
+	
 	@SuppressWarnings("resource")
-	public FileData(String indexPath , String dataPath){
+	public FileData(String indexPath , String dataPath , AbstractComparator comparator){
 		this.indexPath = indexPath;
 		this.dataPath = dataPath;
+		this.comparator = comparator;
 		try {
 			File index = new File(indexPath);
 			number = index.getName().substring(0, index.getName().indexOf("."));
@@ -156,7 +161,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		data.position((int) pos.getStart());
 		data.get(slice.array());
 
-		Block b = new Block(slice);
+		Block b = new Block(slice,comparator);
 		Slice result = b.get(key);
 		return result;
 	}

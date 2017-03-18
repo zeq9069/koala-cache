@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.kyrincloud.koala_cache.compact.FileIterator;
 import com.kyrincloud.koala_cache.compact.MergeIterator;
+import com.kyrincloud.koala_cache.comparator.AbstractComparator;
+import com.kyrincloud.koala_cache.comparator.DefaultComparator;
 
 /**
  * 核心操作类
@@ -49,16 +51,27 @@ public class MemCache {
 	
 	private volatile boolean isMerge = false;
 	
-	private FileMeta meta = new FileMeta();
+	private FileMeta meta = new FileMeta();;
 	
 	private String basePath;
 	
+	private AbstractComparator comparator ;
+	
 	public MemCache(String basePath){
-		this(basePath, false);
+		this(basePath,false);
+	}
+	
+	public MemCache(String basePath , AbstractComparator comparator){
+		this(basePath,comparator,false);
 	}
 	
 	public MemCache(String basePath , boolean reload){
+		this(basePath,new DefaultComparator(),false);
+	}
+	
+	public MemCache(String basePath , AbstractComparator comparator , boolean reload){
 		this.basePath = basePath;
+		this.comparator = comparator;
 		load(basePath,reload);
 		table = new Table();
 		initSchedule();
@@ -79,7 +92,7 @@ public class MemCache {
 			
 			for(File f : files){
 				if(reload){
-					meta.put(new FileData(f.getAbsolutePath(), f.getAbsolutePath().replace(".index", ".data")));
+					meta.put(new FileData(f.getAbsolutePath(), f.getAbsolutePath().replace(".index", ".data"),comparator));
 				}else{
 					File data = new File(f.getAbsolutePath().replace(".index", ".data"));
 					data.delete();
@@ -130,7 +143,7 @@ public class MemCache {
 			@Override
 			public void run() {
 				if(!isSchedule && !table.isEmpty()){
-					System.out.println(">>>timer<<<");
+					System.out.println(">>>Timer Scheduce<<<");
 					mayScheduce();
 				}
 				
@@ -206,7 +219,7 @@ public class MemCache {
 			writeIndex(index,indexFos);
 			
 			logNumber.incrementAndGet();
-			meta.put(new FileData(indexPath, dataPath));
+			meta.put(new FileData(indexPath, dataPath,comparator));
 
 		} catch (FileNotFoundException e) {
 			LOG.error("MemCache mayScheduce don't found file.",e);
@@ -310,7 +323,7 @@ public class MemCache {
 
 			writeIndex(index, indexFos);
 
-			meta.put(new FileData(indexPath, dataPath));
+			meta.put(new FileData(indexPath, dataPath,comparator));
 
 			for(FileData fileData : fileDatas){
 				fileData.setStatus(FileDataStatus.DELETED);

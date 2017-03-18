@@ -61,13 +61,17 @@ public class Slice implements Comparable<Slice>{
 	}
 
 	public long getLong() {
-		long value;
-		value = (long) ((block[position + 7] & 0xFF) | ((block[position + 6] & 0xFF) << 8)
-				| ((block[position + 5] & 0xFF) << 16) | ((block[position + 4] & 0xFF) << 24)
-				| ((block[position + 3] & 0xFF) << 32) | ((block[position + 2] & 0xFF) << 40)
-				| ((block[position + 1] & 0xFF) << 48) | ((block[position] & 0xFF) << 56));
+		long res = 0;
+		res = ((res << 8) | (block[0] & 0xff));
+		res = ((res << 8) | (block[1] & 0xff));
+		res = ((res << 8) | (block[2] & 0xff));
+		res = ((res << 8) | (block[3] & 0xff));
+		res = ((res << 8) | (block[4] & 0xff));
+		res = ((res << 8) | (block[5] & 0xff));
+		res = ((res << 8) | (block[6] & 0xff));
+		res = ((res << 8) | (block[7] & 0xff));
 		position += 8;
-		return value;
+		return res;
 	}
 
 	public void putInt(int value) {
@@ -127,10 +131,10 @@ public class Slice implements Comparable<Slice>{
 	public static void main(String[] args) {
 		byte[] f = new byte[] { 1, 2, 2 };
 		Slice slice = new Slice(11);
-		slice.putLong(10);
+		slice.putLong(1000000000000L);
 		slice.put(f);
 		slice.position(0);
-		System.out.println(slice.getInt());
+		System.out.println(slice.getLong());
 	}
 
 	public int compareTo(Slice that) {

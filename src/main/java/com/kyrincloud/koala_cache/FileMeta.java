@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.kyrincloud.koala_cache.comparator.AbstractComparator;
 
 /**
  * 文件元数据管理，存放着目前已经生成的FileData相关的文件，包括，正在合并的，正常的，已经删除还未来得及删除的
@@ -48,7 +49,6 @@ public class FileMeta {
 		}catch (Exception e) {
 			LOG.error("FileData search key fail.",e);
 		}
-		System.out.println("文件数量："+filenames.size()+" , 存货树良:"+live());
 		return null;
 	}
 	
@@ -63,7 +63,6 @@ public class FileMeta {
 				data.clear();
 			}
 		}
-		System.out.println("最终数量："+filenames.size());
 		return living;
 	}
 	
