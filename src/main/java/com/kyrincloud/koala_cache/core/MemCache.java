@@ -30,7 +30,7 @@ import com.kyrincloud.koala_cache.comparator.DefaultComparator;
 
 /**
  * 核心操作类
- * 缓存实现，提供持久化机制，同时，内存达到一定的大小之后会被持久化到硬盘，然后生成的多个文件进行归并，最终生成一个有序的数据文件
+ * 缓存实现，提供持久化机制，同时，内存达到一定的大小之后会被持久化到硬盘，然后生成的多个文件进行归并，最终生成一个有序的数据文件(单文件有上限，但是读效率高)
  * @author zhangerqiang
  */
 public class MemCache {
@@ -122,16 +122,16 @@ public class MemCache {
 		}
 	}
 	
-	public Slice get(byte[] key){
+	public Entity get(byte[] key){
 		Slice value = table.get(key);
 		if(value != null){
-			return value;
+			return new Entity(new Slice(key), value);
 		}
 		if(immuMemTable != null){
 			value = immuMemTable.get(key);
 		}
 		if(value != null){
-			return value;
+			return new Entity(new Slice(key), value);
 		}
 		return meta.search(new Slice(key));
 	}

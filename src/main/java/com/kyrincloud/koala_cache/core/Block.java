@@ -23,7 +23,7 @@ public class Block {
 		this.comparator = comparator;
 	}
 	
-	public Slice get(Slice key){//优化以后
+	public Entity get(Slice key){//优化以后
 		List<Integer> indexs = new ArrayList<Integer>();
 		for(;block.remaining()>8;){
 			indexs.add(block.position());
@@ -41,7 +41,7 @@ public class Block {
             mid=(lo+hi)/2;
             Entity entity = indexOf(indexs.get(mid));
             if(comparator.compare(key, entity) == 0){
-            	return entity.getValue();
+            	return entity;
             }else if(comparator.compare(key, entity)>0){
                 lo=mid+1;
             }else{

@@ -146,7 +146,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		}
 	}
 
-	public Slice searchCache(Slice key) throws Exception {
+	public Entity searchCache(Slice key) throws Exception {
 		// 这种分配貌似比直接bytebuffer.allact效率要高一些
 
 		Position pos = get(key);
@@ -162,8 +162,7 @@ private static final Log LOG = LogFactory.getLog(FileData.class);
 		data.get(slice.array());
 
 		Block b = new Block(slice,comparator);
-		Slice result = b.get(key);
-		return result;
+		return b.get(key);
 	}
 
 }
